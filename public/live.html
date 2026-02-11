@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Lily's Turtles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #041526;
+    }
+    canvas {
+      display: block;
+      width: 100%; height: 100%;
+    }
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 21, 38, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    #overlay.hidden { display: none; }
+    .code-box {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 36px 32px;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .code-box h1 {
+      font-family: 'Nunito', sans-serif;
+      color: #0a4d6e;
+      font-size: 26px;
+      margin-bottom: 8px;
+    }
+    .code-box p {
+      color: #666;
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+    .code-box input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      font-size: 20px;
+      text-align: center;
+      letter-spacing: 8px;
+      margin-bottom: 16px;
+      -webkit-appearance: none;
+    }
+    .code-box input:focus {
+      outline: none;
+      border-color: #14a3c7;
+    }
+    .code-box button {
+      width: 100%;
+      padding: 14px;
+      background: #0d7fa5;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 48px;
+    }
+    .code-box button:active { background: #0a6a8a; }
+    .code-box .error {
+      color: #c00;
+      font-size: 14px;
+      margin-top: 12px;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="aquarium"></canvas>
+  <div id="overlay">
+    <div class="code-box">
+      <h1>Lily's Turtles</h1>
+      <p>Enter the Turtle Code</p>
+      <input type="text" id="codeInput" inputmode="numeric" pattern="\d*" maxlength="10" autocomplete="off">
+      <button id="codeSubmit">Enter</button>
+      <div class="error" id="codeError"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- State ---
+    const canvas = document.getElementById('aquarium');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const codeInput = document.getElementById('codeInput');
+    const codeSubmit = document.getElementById('codeSubmit');
+    const codeError = document.getElementById('codeError');
+
+    let eventCode = '';
+    let turtleMap = new Map(); // id -> client turtle state
+    let particles = [];
+    let lightRays = [];
+    let startTime = performance.now() / 1000;
+    let titleOpacity = 0;
+    let aquariumRunning = false;
+    let pollTimer = null;
+
+    // --- Canvas Resize ---
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      // Recalculate baseY for all turtles
+      for (const t of turtleMap.values()) {
+        t.baseY = canvas.height * (0.2 + t.depth * 0.6);
+      }
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // --- Particles ---
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < 50; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: 1 + Math.random() * 2,
+          alpha: 0.1 + Math.random() * 0.3,
+          vx: (Math.random() - 0.5) * 8,
+          vy: -Math.random() * 6 - 2
+        });
+      }
+    }
+
+    function updateParticles(dt) {
+      for (const p of particles) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+        if (p.x < -10) p.x = canvas.width + 10;
+        if (p.x > canvas.width + 10) p.x = -10;
+      }
+    }
+
+    function drawParticles() {
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 230, 255, ${p.alpha})`;
+        ctx.fill();
+      }
+    }
+
+    // --- Light Rays ---
+    function initLightRays() {
+      lightRays = [];
+      for (let i = 0; i < 5; i++) {
+        lightRays.push({
+          x: (canvas.width / 6) * (i + 0.5),
+          width: 60 + Math.random() * 80,
+          phaseOffset: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function drawLightRays(time) {
+      ctx.save();
+      ctx.globalAlpha = 0.03;
+      for (const ray of lightRays) {
+        const sway = Math.sin(time * 0.3 + ray.phaseOffset) * 40;
+        const topX = ray.x + sway;
+        const topW = ray.width * 0.3;
+        const bottomW = ray.width * 2;
+        const bottomX = ray.x + sway * 0.5;
+
+        ctx.beginPath();
+        ctx.moveTo(topX - topW / 2, 0);
+        ctx.lineTo(topX + topW / 2, 0);
+        ctx.lineTo(bottomX + bottomW / 2, canvas.height);
+        ctx.lineTo(bottomX - bottomW / 2, canvas.height);
+        ctx.closePath();
+        ctx.fillStyle = 'white';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // --- Background ---
+    function drawBackground() {
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, '#0a3d5c');
+      grad.addColorStop(0.4, '#072a40');
+      grad.addColorStop(1, '#041526');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // --- Turtle Client State ---
+    function createClientTurtle(serverTurtle) {
+      const depth = serverTurtle.depth;
+      const startDir = serverTurtle.direction || 1;
+      return {
+        id: serverTurtle.id,
+        name: serverTurtle.name,
+        depth: depth,
+        speed: serverTurtle.speed,
+        amplitude: serverTurtle.amplitude,
+        phase: serverTurtle.phase,
+        direction: startDir,
+        isHero: serverTurtle.isHero || false,
+        // Position
+        x: startDir > 0 ? -200 : canvas.width + 200,
+        baseY: canvas.height * (0.2 + depth * 0.6),
+        // 3D turn
+        scaleX: startDir,
+        turning: false,
+        turnProgress: 0,
+        // Name display
+        nameOpacity: 0,
+        nameTimer: 0,
+        namePhase: 'fadein', // fadein, visible, fadeout, done
+        // Image
+        image: null,
+        imageLoaded: false
+      };
+    }
+
+    function loadTurtleImage(turtle, imageData) {
+      if (!imageData) return;
+      const img = new Image();
+      img.onload = () => {
+        turtle.image = img;
+        turtle.imageLoaded = true;
+      };
+      img.src = imageData;
+    }
+
+    // --- Turtle Update & Draw ---
+    function updateTurtle(t, dt, time) {
+      const depthSpeedFactor = 0.5 + t.depth * 0.5;
+
+      // 3D Turning
+      if (t.turning) {
+        t.turnProgress += dt / 0.2; // 200ms turn duration
+        if (t.turnProgress >= 1) {
+          t.turning = false;
+          t.turnProgress = 1;
+          t.scaleX = t.direction;
+        } else {
+          // Animate scaleX through 0
+          if (t.turnProgress < 0.5) {
+            // First half: current direction → 0
+            const oldDir = -t.direction; // direction before turn
+            t.scaleX = oldDir * (1 - t.turnProgress * 2);
+          } else {
+            // Second half: 0 → new direction
+            t.scaleX = t.direction * ((t.turnProgress - 0.5) * 2);
+          }
+        }
+      }
+
+      // Horizontal movement
+      t.x += t.speed * t.direction * dt * depthSpeedFactor;
+
+      // Edge detection — trigger turn
+      const margin = 100;
+      if (!t.turning) {
+        if (t.direction > 0 && t.x > canvas.width + margin) {
+          t.direction = -1;
+          t.turning = true;
+          t.turnProgress = 0;
+        } else if (t.direction < 0 && t.x < -margin) {
+          t.direction = 1;
+          t.turning = true;
+          t.turnProgress = 0;
+        }
+      }
+
+      // Name animation
+      if (t.namePhase === 'fadein') {
+        t.nameOpacity = Math.min(1, t.nameOpacity + dt);
+        if (t.nameOpacity >= 1) {
+          t.namePhase = 'visible';
+          t.nameTimer = 0;
+        }
+      } else if (t.namePhase === 'visible') {
+        t.nameTimer += dt;
+        if (t.nameTimer >= 30) {
+          t.namePhase = 'fadeout';
+        }
+      } else if (t.namePhase === 'fadeout') {
+        t.nameOpacity = Math.max(0, t.nameOpacity - dt);
+        if (t.nameOpacity <= 0) {
+          t.namePhase = 'done';
+        }
+      }
+    }
+
+    function drawTurtle(t, time) {
+      if (!t.imageLoaded) return;
+
+      const depth = t.depth;
+      const scale = 0.5 + depth * 0.5;
+      const heroMult = t.isHero ? 1.5 : 1;
+      const totalScale = scale * heroMult;
+      const opacity = 0.6 + depth * 0.4;
+
+      // Vertical bob
+      const y = t.baseY + Math.sin(time + t.phase) * t.amplitude;
+
+      // Squash/stretch during turn
+      let stretchY = 1;
+      if (t.turning) {
+        const flatness = 1 - Math.abs(t.scaleX) / Math.max(Math.abs(t.direction), 1);
+        stretchY = 1 + flatness * 0.15;
+      }
+
+      const drawW = t.image.width * totalScale;
+      const drawH = t.image.height * totalScale;
+
+      ctx.save();
+      ctx.globalAlpha = opacity;
+
+      // Depth blur for distant turtles
+      if (depth < 0.3) {
+        ctx.filter = `blur(${Math.round((0.3 - depth) * 6)}px)`;
+      }
+
+      // Hero golden glow
+      if (t.isHero) {
+        ctx.shadowColor = 'rgba(201, 168, 76, 0.5)';
+        ctx.shadowBlur = 20;
+      }
+
+      ctx.translate(t.x, y);
+      ctx.scale(t.scaleX > 0 ? totalScale : -totalScale, totalScale * stretchY);
+      ctx.drawImage(t.image, -t.image.width / 2, -t.image.height / 2);
+      ctx.restore();
+
+      // Draw name
+      if (t.nameOpacity > 0 && t.name) {
+        const fontSize = Math.round(16 * totalScale);
+        ctx.save();
+        ctx.globalAlpha = t.nameOpacity * opacity;
+        ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = 'white';
+        ctx.fillText(t.name, t.x, y - drawH / 2 - 8);
+        ctx.restore();
+      }
+    }
+
+    // --- Title ---
+    function drawTitle(time) {
+      if (titleOpacity <= 0) return;
+
+      // Find hero turtle for Y tracking
+      const hero = turtleMap.get('hero');
+      let titleY = canvas.height * 0.15;
+      if (hero) {
+        const heroY = hero.baseY + Math.sin(time + hero.phase) * hero.amplitude;
+        const heroScale = (0.5 + hero.depth * 0.5) * 1.5;
+        titleY = heroY - (hero.imageLoaded ? hero.image.height * heroScale / 2 : 80) - 40;
+        titleY = Math.max(50, Math.min(titleY, canvas.height * 0.35));
+      }
+
+      const fontSize = Math.min(48, canvas.width / 12);
+      ctx.save();
+      ctx.globalAlpha = titleOpacity;
+      ctx.font = `800 ${fontSize}px 'Nunito', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = 'white';
+      ctx.fillText("Lily's Turtles", canvas.width / 2, titleY);
+      ctx.restore();
+    }
+
+    // --- Polling ---
+    async function pollTurtles() {
+      try {
+        const knownIds = Array.from(turtleMap.keys()).join(',');
+        const url = `/api/turtles?eventCode=${encodeURIComponent(eventCode)}&knownIds=${encodeURIComponent(knownIds)}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const serverIds = new Set();
+        for (const st of data.turtles) {
+          serverIds.add(st.id);
+
+          if (turtleMap.has(st.id)) {
+            // Existing turtle: update metadata only, preserve animation state
+            const existing = turtleMap.get(st.id);
+            existing.name = st.name;
+            // Don't update position/animation properties
+          } else {
+            // New turtle
+            const ct = createClientTurtle(st);
+            loadTurtleImage(ct, st.imageData);
+            turtleMap.set(st.id, ct);
+          }
+        }
+
+        // Remove turtles no longer on server
+        for (const id of turtleMap.keys()) {
+          if (!serverIds.has(id)) {
+            turtleMap.delete(id);
+          }
+        }
+      } catch (e) {
+        // Silent fail, retry next poll
+      }
+    }
+
+    function startPolling() {
+      pollTurtles();
+      pollTimer = setInterval(pollTurtles, 3000);
+    }
+
+    // --- Animation Loop ---
+    let lastFrame = performance.now();
+
+    function animate(now) {
+      if (!aquariumRunning) return;
+
+      const dt = Math.min((now - lastFrame) / 1000, 0.1); // cap dt
+      lastFrame = now;
+      const time = (now / 1000) - startTime;
+
+      // Fade in title
+      if (titleOpacity < 1) {
+        titleOpacity = Math.min(1, titleOpacity + dt * 0.5);
+      }
+
+      // Background
+      drawBackground();
+
+      // Light rays
+      drawLightRays(time);
+
+      // Particles
+      updateParticles(dt);
+      drawParticles();
+
+      // Sort turtles by depth (far first = drawn behind)
+      const sortedTurtles = Array.from(turtleMap.values())
+        .sort((a, b) => a.depth - b.depth);
+
+      // Update and draw turtles
+      for (const t of sortedTurtles) {
+        updateTurtle(t, dt, time);
+        drawTurtle(t, time);
+      }
+
+      // Title
+      drawTitle(time);
+
+      requestAnimationFrame(animate);
+    }
+
+    // --- Code Entry ---
+    async function validateCode(code) {
+      try {
+        const res = await fetch(`/api/turtles?eventCode=${encodeURIComponent(code)}&knownIds=`);
+        return res.status;
+      } catch {
+        return 0;
+      }
+    }
+
+    async function handleCodeSubmit() {
+      const code = codeInput.value.trim();
+      if (!code) return;
+
+      codeError.textContent = '';
+      codeSubmit.disabled = true;
+      codeSubmit.textContent = 'Checking...';
+
+      const status = await validateCode(code);
+
+      if (status === 200) {
+        eventCode = code;
+        localStorage.setItem('turtleCode', code);
+        overlay.classList.add('hidden');
+        startAquarium();
+      } else if (status === 429) {
+        codeError.textContent = 'Too many attempts. Wait a moment.';
+      } else if (status === 403) {
+        codeError.textContent = 'Wrong code. Try again!';
+      } else {
+        codeError.textContent = 'Connection error. Try again.';
+      }
+
+      codeSubmit.disabled = false;
+      codeSubmit.textContent = 'Enter';
+    }
+
+    codeSubmit.addEventListener('click', handleCodeSubmit);
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleCodeSubmit();
+    });
+
+    function startAquarium() {
+      aquariumRunning = true;
+      initParticles();
+      initLightRays();
+      startPolling();
+      lastFrame = performance.now();
+      requestAnimationFrame(animate);
+    }
+
+    // --- Init: check for stored code ---
+    (async () => {
+      const stored = localStorage.getItem('turtleCode');
+      if (stored) {
+        const status = await validateCode(stored);
+        if (status === 200) {
+          eventCode = stored;
+          overlay.classList.add('hidden');
+          startAquarium();
+          return;
+        }
+      }
+      // Show overlay
+      codeInput.focus();
+    })();
+  </script>
+</body>
+</html>

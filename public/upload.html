@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Upload — Lily's Turtles</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0a4d6e 0%, #0d7fa5 50%, #14a3c7 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 32px 28px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+    h1 {
+      text-align: center;
+      color: #0a4d6e;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      font-size: 16px;
+      margin-bottom: 18px;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #14a3c7;
+    }
+    input[type="file"] {
+      padding: 12px;
+      cursor: pointer;
+      background: #f8f9fa;
+    }
+    button {
+      width: 100%;
+      padding: 16px;
+      background: #0d7fa5;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 52px;
+      transition: background 0.2s;
+    }
+    button:active { background: #0a6a8a; }
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+    .message {
+      text-align: center;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 16px;
+      font-size: 15px;
+      display: none;
+    }
+    .message.error {
+      display: block;
+      background: #ffe0e0;
+      color: #c00;
+    }
+    .message.success {
+      display: block;
+      background: #e0ffe0;
+      color: #060;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Lily's Turtles</h1>
+    <p class="subtitle">Add your turtle to the aquarium!</p>
+    <form id="uploadForm">
+      <label for="name">Turtle Name</label>
+      <input type="text" id="name" name="name" required maxlength="30" placeholder="What's your turtle called?">
+
+      <label for="photo">Turtle Photo</label>
+      <input type="file" id="photo" name="photo" accept="image/*" capture="environment" required>
+
+      <label for="eventCode">Turtle Code</label>
+      <input type="text" id="eventCode" name="eventCode" required inputmode="numeric" pattern="\d*" placeholder="4-digit code">
+
+      <button type="submit" id="submitBtn">Add My Turtle!</button>
+    </form>
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const msg = document.getElementById('message');
+    const btn = document.getElementById('submitBtn');
+
+    // Pre-fill event code from localStorage
+    const stored = localStorage.getItem('turtleCode');
+    if (stored) document.getElementById('eventCode').value = stored;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.className = 'message';
+      msg.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
+
+      const formData = new FormData(form);
+
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (!res.ok) {
+          msg.className = 'message error';
+          msg.textContent = data.error || 'Upload failed.';
+          msg.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Add My Turtle!';
+          return;
+        }
+
+        // Save event code on success
+        localStorage.setItem('turtleCode', document.getElementById('eventCode').value);
+
+        msg.className = 'message success';
+        msg.textContent = "Your turtle is swimming in Lily's Turtles!";
+        msg.style.display = 'block';
+        btn.textContent = 'Going to aquarium...';
+
+        setTimeout(() => { window.location.href = '/live'; }, 3000);
+      } catch (err) {
+        msg.className = 'message error';
+        msg.textContent = 'Network error. Please try again.';
+        msg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Add My Turtle!';
+      }
+    });
+  </script>
+</body>
+</html>
