@@ -118,7 +118,7 @@
     let startTime = 0;
 
     // --- Tank ---
-    const TANK = { xMin: -13, xMax: 13, yMin: -6, yMax: 6, zMin: -7, zMax: 7 };
+    const TANK = { xMin: -13, xMax: 13, yMin: -6, yMax: 6, zMin: -7, zMax: 16 };
 
     // --- Scene ---
     const scene = new THREE.Scene();
@@ -149,7 +149,31 @@
     });
 
     // --- Shared geometry & materials ---
+    // Shell uses custom UVs: top-down planar projection on upper hemisphere
+    // so drawings appear flat/centered on the shell back, not wrapped spherically.
     const shellGeo = new THREE.SphereGeometry(1, 32, 16);
+    {
+      const pos = shellGeo.attributes.position;
+      const uv = shellGeo.attributes.uv;
+      // CanvasTexture flipY=true means v=1 → canvas top (drawing), v=0 → canvas bottom (belly).
+      // Texture layout: canvas top half = drawing on white, canvas bottom half = green belly.
+      // So: shell back (y>=0) → v: 0.5–1.0, belly (y<0) → v: 0–0.5.
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const z = pos.getZ(i);
+        if (y >= 0) {
+          // Top hemisphere: planar projection from above into drawing region (v: 0.5–1.0)
+          const u = (x + 1) / 2;
+          const v = 0.5 + (1 - z) / 2 * 0.5; // z=-1 (head) → v=1 (top of drawing), z=1 (tail) → v=0.5
+          uv.setXY(i, u, v);
+        } else {
+          // Bottom hemisphere: green belly region (v: 0–0.5)
+          uv.setXY(i, 0.5, 0.25);
+        }
+      }
+      uv.needsUpdate = true;
+    }
     const headGeo = new THREE.SphereGeometry(1, 12, 8);
     const frontFlipGeo = new THREE.SphereGeometry(1, 10, 6);
     const backFlipGeo = new THREE.SphereGeometry(1, 8, 6);
@@ -788,16 +812,16 @@
       const groundTex = new THREE.CanvasTexture(gc);
       groundTex.colorSpace = THREE.SRGBColorSpace;
 
-      // Wide flat plane: stretches well beyond screen edges horizontally,
-      // shallow depth so it only covers the bottom portion of the view
-      const groundGeo = new THREE.PlaneGeometry(50, 10);
+      // Wide flat plane: stretches beyond screen edges horizontally,
+      // extends well toward the camera so no black gap at screen bottom
+      const groundGeo = new THREE.PlaneGeometry(60, 28);
       const groundMat = new THREE.MeshStandardMaterial({
         map: groundTex, roughness: 0.95,
         transparent: true, depthWrite: false,
       });
       const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
-      ground.position.set(0, TANK.yMin - 0.05, 3);
+      ground.position.set(0, TANK.yMin - 0.05, 10);
       scene.add(ground);
 
       // A few scattered rocks on the ground
