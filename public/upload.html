@@ -268,12 +268,28 @@
         allBtns.forEach(b => b.disabled = true);
 
         try {
-          await fetch(`/api/turtle/${turtleId}/command`, {
+          const res = await fetch(`/api/turtle/${turtleId}/command`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, eventCode: savedEventCode }),
           });
-        } catch {}
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data.error === 'Turtle not found.') {
+              msg.className = 'message error';
+              msg.textContent = 'Your turtle is no longer in the aquarium.';
+              msg.style.display = 'block';
+            }
+          } else {
+            // Brief flash to confirm command sent
+            actionBtn.style.opacity = '0.7';
+            setTimeout(() => { actionBtn.style.opacity = ''; }, 150);
+          }
+        } catch {
+          msg.className = 'message error';
+          msg.textContent = 'Connection error. Try again!';
+          msg.style.display = 'block';
+        }
 
         // Cooldown then re-enable
         setTimeout(() => {
