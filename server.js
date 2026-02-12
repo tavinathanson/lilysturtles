@@ -2,6 +2,11 @@ const express = require('express');
 const multer = require('multer');
 const sharp = require('sharp');
 const path = require('path');
+const fs = require('fs');
+
+// Ensure drawings folder exists
+const DRAWINGS_DIR = path.join(__dirname, 'drawings');
+if (!fs.existsSync(DRAWINGS_DIR)) fs.mkdirSync(DRAWINGS_DIR);
 
 const app = express();
 const EVENT_CODE = process.env.EVENT_CODE || '1234';
@@ -144,6 +149,52 @@ app.get('/upload', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'upload.html'));
 });
 
+// Serve saved drawings as static files
+app.use('/drawings', express.static(DRAWINGS_DIR));
+
+// Gallery page — shows all uploaded drawings
+app.get('/gallery', (req, res) => {
+  let files = [];
+  try {
+    files = fs.readdirSync(DRAWINGS_DIR)
+      .filter(f => f.endsWith('.png'))
+      .sort((a, b) => {
+        const idA = parseInt(a.split('_')[0]) || 0;
+        const idB = parseInt(b.split('_')[0]) || 0;
+        return idB - idA; // newest first
+      });
+  } catch {}
+
+  const cards = files.map(f => {
+    const name = f.replace(/^\d+_/, '').replace(/\.png$/, '').replace(/_/g, ' ');
+    return `<div class="card"><img src="/drawings/${f}" alt="${name}"><div class="name">${name}</div></div>`;
+  }).join('\n');
+
+  res.send(`<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Turtle Drawings</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#041526;color:white;font-family:'Nunito',sans-serif;padding:24px}
+  h1{text-align:center;font-size:32px;margin-bottom:24px}
+  .count{text-align:center;color:#88b8d0;margin-bottom:24px;font-size:15px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px;max-width:1200px;margin:0 auto}
+  .card{background:rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;text-align:center}
+  .card img{width:100%;aspect-ratio:1;object-fit:contain;background:white;padding:8px}
+  .name{padding:10px;font-weight:700;font-size:15px}
+  .empty{text-align:center;color:#88b8d0;margin-top:60px;font-size:18px}
+  a.back{display:block;text-align:center;color:#14a3c7;margin-bottom:20px;font-size:15px}
+</style>
+</head><body>
+<h1>Turtle Drawings</h1>
+<a class="back" href="/live">Back to aquarium</a>
+<div class="count">${files.length} drawing${files.length !== 1 ? 's' : ''}</div>
+${files.length ? `<div class="grid">${cards}</div>` : '<div class="empty">No drawings yet. Upload some turtles!</div>'}
+</body></html>`);
+});
+
 app.post('/api/upload', upload.single('photo'), async (req, res) => {
   try {
     const { eventCode, name } = req.body;
@@ -183,6 +234,16 @@ app.post('/api/upload', upload.single('photo'), async (req, res) => {
     };
 
     turtles.push(turtle);
+
+    // Save drawing to disk
+    try {
+      const base64 = imageData.replace(/^data:image\/\w+;base64,/, '');
+      const safeName = name.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filePath = path.join(DRAWINGS_DIR, `${turtle.id}_${safeName}.png`);
+      fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+    } catch (e) {
+      console.error('Failed to save drawing:', e);
+    }
 
     // FIFO eviction
     while (turtles.length > MAX_TURTLES) {

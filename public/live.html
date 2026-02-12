@@ -13,17 +13,11 @@
       overflow: hidden;
       background: #041526;
     }
-    #container {
-      width: 100%; height: 100%;
-    }
-    #container canvas {
-      display: block;
-    }
+    #container { width: 100%; height: 100%; }
+    #container canvas { display: block; }
     #labels {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 1;
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 1;
     }
     .turtle-label {
       position: absolute;
@@ -34,7 +28,6 @@
       text-shadow: 0 1px 4px rgba(0,0,0,0.7);
       transform: translate(-50%, -100%);
       white-space: nowrap;
-      transition: opacity 0.05s linear;
     }
     #title-label {
       position: absolute;
@@ -46,16 +39,12 @@
       transform: translate(-50%, -100%);
       white-space: nowrap;
       opacity: 0;
-      transition: opacity 0.05s linear;
       pointer-events: none;
     }
     #overlay {
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0;
       background: rgba(4, 21, 38, 0.92);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       z-index: 10;
     }
     #overlay.hidden { display: none; }
@@ -63,63 +52,36 @@
       background: rgba(255, 255, 255, 0.95);
       border-radius: 20px;
       padding: 36px 32px;
-      max-width: 360px;
-      width: 90%;
+      max-width: 360px; width: 90%;
       text-align: center;
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     .code-box h1 {
       font-family: 'Nunito', sans-serif;
-      color: #0a4d6e;
-      font-size: 26px;
-      margin-bottom: 8px;
+      color: #0a4d6e; font-size: 26px; margin-bottom: 8px;
     }
-    .code-box p {
-      color: #666;
-      font-size: 15px;
-      margin-bottom: 20px;
-    }
+    .code-box p { color: #666; font-size: 15px; margin-bottom: 20px; }
     .code-box input {
-      width: 100%;
-      padding: 14px;
-      border: 2px solid #ddd;
-      border-radius: 12px;
-      font-size: 20px;
-      text-align: center;
-      letter-spacing: 8px;
-      margin-bottom: 16px;
+      width: 100%; padding: 14px;
+      border: 2px solid #ddd; border-radius: 12px;
+      font-size: 20px; text-align: center;
+      letter-spacing: 8px; margin-bottom: 16px;
       -webkit-appearance: none;
     }
-    .code-box input:focus {
-      outline: none;
-      border-color: #14a3c7;
-    }
+    .code-box input:focus { outline: none; border-color: #14a3c7; }
     .code-box button {
-      width: 100%;
-      padding: 14px;
-      background: #0d7fa5;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 17px;
-      font-weight: 600;
-      cursor: pointer;
-      min-height: 48px;
+      width: 100%; padding: 14px;
+      background: #0d7fa5; color: white; border: none;
+      border-radius: 12px; font-size: 17px;
+      font-weight: 600; cursor: pointer; min-height: 48px;
     }
     .code-box button:active { background: #0a6a8a; }
-    .code-box .error {
-      color: #c00;
-      font-size: 14px;
-      margin-top: 12px;
-      min-height: 20px;
-    }
+    .code-box .error { color: #c00; font-size: 14px; margin-top: 12px; min-height: 20px; }
   </style>
 </head>
 <body>
   <div id="container"></div>
-  <div id="labels">
-    <div id="title-label">Lily's Turtles</div>
-  </div>
+  <div id="labels"><div id="title-label">Lily's Turtles</div></div>
 
   <div id="overlay">
     <div class="code-box">
@@ -132,17 +94,13 @@
   </div>
 
   <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
-    }
-  }
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
   </script>
 
   <script type="module">
     import * as THREE from 'three';
 
-    // --- DOM refs ---
+    // --- DOM ---
     const container = document.getElementById('container');
     const labelsDiv = document.getElementById('labels');
     const titleLabel = document.getElementById('title-label');
@@ -153,408 +111,510 @@
 
     // --- State ---
     let eventCode = '';
-    let turtleMap = new Map(); // id -> { group, state, labelDiv }
+    const turtleMap = new Map();
     let aquariumRunning = false;
     let pollTimer = null;
     let titleOpacity = 0;
     let startTime = 0;
 
-    // --- Tank boundaries ---
-    const TANK = {
-      xMin: -12, xMax: 12,
-      yMin: -5, yMax: 5,
-      zMin: -6, zMax: 6
-    };
+    // --- Tank ---
+    const TANK = { xMin: -13, xMax: 13, yMin: -6, yMax: 6, zMin: -7, zMax: 7 };
 
-    // --- Three.js Setup ---
+    // --- Scene ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x041526);
 
-    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 4, 20);
-    camera.lookAt(0, 0, 0);
+    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(0, 9, 22);
+    camera.lookAt(0, -1, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(5, 10, 7);
+    dirLight.position.set(5, 12, 8);
     scene.add(dirLight);
-
-    // Subtle blue fill from above for underwater feel
     const fillLight = new THREE.DirectionalLight(0x4488cc, 0.3);
-    fillLight.position.set(0, 10, 0);
+    fillLight.position.set(-3, 10, -2);
     scene.add(fillLight);
 
     // --- Resize ---
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(innerWidth, innerHeight);
     });
 
-    // --- Shared Geometry (created once) ---
-    const shellGeo = new THREE.SphereGeometry(1, 24, 16);
-    const headGeo = new THREE.SphereGeometry(0.3, 12, 8);
-    const flipperGeo = new THREE.BoxGeometry(0.5, 0.08, 0.3);
-    const tailGeo = new THREE.BoxGeometry(0.15, 0.06, 0.3);
-    const greenMat = new THREE.MeshStandardMaterial({ color: 0x7A9A3A });
+    // --- Shared geometry & materials ---
+    const shellGeo = new THREE.SphereGeometry(1, 32, 16);
+    const headGeo = new THREE.SphereGeometry(1, 12, 8);
+    const frontFlipGeo = new THREE.SphereGeometry(1, 10, 6);
+    const backFlipGeo = new THREE.SphereGeometry(1, 8, 6);
+    const tailGeo = new THREE.ConeGeometry(0.06, 0.3, 6);
+    const eyeGeo = new THREE.SphereGeometry(0.038, 8, 6);
+    const pupilGeo = new THREE.SphereGeometry(0.024, 6, 4);
 
-    // --- Turtle Geometry Factory ---
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x5A8A3A, roughness: 0.8 });
+    const darkSkinMat = new THREE.MeshStandardMaterial({ color: 0x4A7A2E, roughness: 0.8 });
+    const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const pupilMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+    // --- Hero shell texture (scute pattern top, green belly bottom) ---
+    function createHeroTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 512; // top half = shell back, bottom half = belly
+      const x = c.getContext('2d');
+
+      // --- Top half: golden-green scute pattern (visible back) ---
+      x.fillStyle = '#B8CC58';
+      x.fillRect(0, 0, 256, 256);
+
+      x.strokeStyle = 'rgba(139, 154, 70, 0.6)';
+      x.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        x.beginPath();
+        x.ellipse(128, 25 + i * 50, 30, 22, 0, 0, Math.PI * 2);
+        x.stroke();
+      }
+      for (const side of [-1, 1]) {
+        for (let i = 0; i < 4; i++) {
+          x.beginPath();
+          x.ellipse(128 + side * 52, 48 + i * 52, 22, 20, side * 0.2, 0, Math.PI * 2);
+          x.stroke();
+        }
+      }
+      const g = x.createRadialGradient(128, 128, 0, 128, 128, 120);
+      g.addColorStop(0, 'rgba(201,168,76,0.25)');
+      g.addColorStop(1, 'rgba(201,168,76,0)');
+      x.fillStyle = g;
+      x.fillRect(0, 0, 256, 256);
+
+      // --- Bottom half: green belly ---
+      x.fillStyle = '#4A7A2E';
+      x.fillRect(0, 256, 256, 256);
+
+      // --- Dividing line at equator ---
+      x.strokeStyle = '#3A6A1E';
+      x.lineWidth = 3;
+      x.beginPath();
+      x.moveTo(0, 256);
+      x.lineTo(256, 256);
+      x.stroke();
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    // --- Turtle group factory ---
+    // Local space: -Z = forward, +Y = up (shell top)
     function createTurtleGroup(shellMaterial) {
       const group = new THREE.Group();
 
-      // Shell
+      // Shell dome
       const shell = new THREE.Mesh(shellGeo, shellMaterial);
-      shell.scale.set(1.0, 0.5, 0.8);
+      shell.scale.set(1.2, 0.48, 1.4);
       group.add(shell);
 
       // Head
-      const head = new THREE.Mesh(headGeo, greenMat);
-      head.position.set(0, 0.05, -0.9);
+      const head = new THREE.Mesh(headGeo, skinMat);
+      head.scale.set(0.24, 0.20, 0.32);
+      head.position.set(0, 0.02, -1.32);
       group.add(head);
 
-      // Flippers — each in a pivot group for rotation animation
-      const flipperPositions = [
-        { x: -0.6, z: -0.4, ry: -0.3, name: 'fl_front_left' },
-        { x:  0.6, z: -0.4, ry:  0.3, name: 'fl_front_right' },
-        { x: -0.55, z:  0.4, ry:  0.3, name: 'fl_back_left' },
-        { x:  0.55, z:  0.4, ry: -0.3, name: 'fl_back_right' },
+      // Eyes
+      for (const side of [-1, 1]) {
+        const eye = new THREE.Mesh(eyeGeo, eyeWhiteMat);
+        eye.position.set(side * 0.12, 0.09, -1.5);
+        group.add(eye);
+        const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+        pupil.position.set(side * 0.13, 0.09, -1.53);
+        group.add(pupil);
+      }
+
+      // Front flippers (long paddles)
+      const frontFlipData = [
+        { px: -0.7, pz: -0.35, ox: -0.72, flipY: -0.2, name: 'fl_fl' },
+        { px:  0.7, pz: -0.35, ox:  0.72, flipY:  0.2, name: 'fl_fr' },
       ];
-
-      for (const fp of flipperPositions) {
+      for (const f of frontFlipData) {
         const pivot = new THREE.Group();
-        pivot.position.set(fp.x, -0.1, fp.z);
-        pivot.rotation.y = fp.ry;
-        pivot.name = fp.name;
+        pivot.position.set(f.px, -0.1, f.pz);
+        pivot.name = f.name;
+        const mesh = new THREE.Mesh(frontFlipGeo, skinMat);
+        mesh.scale.set(1.4, 0.05, 0.38);
+        mesh.position.set(f.ox, 0, -0.1);
+        mesh.rotation.y = f.flipY;
+        pivot.add(mesh);
+        group.add(pivot);
+      }
 
-        const flipper = new THREE.Mesh(flipperGeo, greenMat);
-        // Offset so it rotates from attachment point
-        flipper.position.set(fp.x > 0 ? 0.2 : -0.2, 0, 0);
-        pivot.add(flipper);
+      // Back flippers (smaller paddles)
+      const backFlipData = [
+        { px: -0.42, pz: 0.8, ox: -0.3, name: 'fl_bl' },
+        { px:  0.42, pz: 0.8, ox:  0.3, name: 'fl_br' },
+      ];
+      for (const f of backFlipData) {
+        const pivot = new THREE.Group();
+        pivot.position.set(f.px, -0.1, f.pz);
+        pivot.name = f.name;
+        const mesh = new THREE.Mesh(backFlipGeo, darkSkinMat);
+        mesh.scale.set(0.55, 0.04, 0.32);
+        mesh.position.set(f.ox, 0, 0);
+        pivot.add(mesh);
         group.add(pivot);
       }
 
       // Tail
-      const tail = new THREE.Mesh(tailGeo, greenMat);
-      tail.position.set(0, -0.05, 0.85);
+      const tail = new THREE.Mesh(tailGeo, darkSkinMat);
+      tail.position.set(0, -0.04, 1.28);
+      tail.rotation.x = Math.PI / 2;
       group.add(tail);
 
       return group;
     }
 
-    // --- Texture from image data URI ---
-    function loadTextureFromDataURI(dataURI) {
-      return new Promise((resolve) => {
+    // --- Texture helpers ---
+    // Creates a texture with drawing on white (top half) and green belly (bottom half).
+    // The sphere UV maps v=0 at top pole to v=1 at bottom pole, so the
+    // top half of the canvas covers the shell back (visible) and the
+    // bottom half covers the belly (green).
+    function loadShellTexture(dataURI) {
+      return new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
+          const w = img.width;
+          const h = img.height;
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h * 2; // top half = drawing, bottom half = belly
+          const ctx = c.getContext('2d');
+
+          // --- Top half: white background + drawing (shell back) ---
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0);
-          const texture = new THREE.CanvasTexture(canvas);
-          texture.colorSpace = THREE.SRGBColorSpace;
-          resolve(texture);
+
+          // --- Bottom half: green belly ---
+          ctx.fillStyle = '#4A7A2E';
+          ctx.fillRect(0, h, w, h);
+
+          // --- Dividing line ---
+          ctx.strokeStyle = '#3A6A1E';
+          ctx.lineWidth = Math.max(2, h / 100);
+          ctx.beginPath();
+          ctx.moveTo(0, h);
+          ctx.lineTo(w, h);
+          ctx.stroke();
+
+          const tex = new THREE.CanvasTexture(c);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          resolve(tex);
         };
-        img.onerror = () => {
-          resolve(null);
-        };
+        img.onerror = () => resolve(null);
         img.src = dataURI;
       });
     }
 
-    // --- Create 3D turtle from server data ---
-    async function createTurtle3D(serverTurtle) {
-      const isHero = serverTurtle.isHero || false;
+    // --- Angle helpers ---
+    function normalizeAngle(a) {
+      a = a % (Math.PI * 2);
+      if (a > Math.PI) a -= Math.PI * 2;
+      if (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+    function lerpAngle(cur, tgt, t) {
+      return cur + normalizeAngle(tgt - cur) * t;
+    }
+
+    // --- Create turtle from server data ---
+    async function createTurtle3D(st) {
+      const isHero = st.isHero || false;
       const scale = isHero ? 1.4 : 1.0;
 
-      let shellMaterial;
-
-      if (serverTurtle.imageData) {
-        const texture = await loadTextureFromDataURI(serverTurtle.imageData);
-        if (texture) {
-          if (isHero) {
-            shellMaterial = new THREE.MeshStandardMaterial({
-              map: texture,
-              color: 0xB8CC58,
-              emissive: 0x2a1f00,
-              emissiveIntensity: 0.3,
-              side: THREE.DoubleSide,
-            });
-          } else {
-            shellMaterial = new THREE.MeshStandardMaterial({
-              map: texture,
-              side: THREE.DoubleSide,
-            });
-          }
-        } else {
-          shellMaterial = new THREE.MeshStandardMaterial({
-            color: isHero ? 0xB8CC58 : 0x55aa55,
-            side: THREE.DoubleSide,
-          });
-        }
+      let shellMat;
+      if (isHero) {
+        const tex = createHeroTexture();
+        shellMat = new THREE.MeshStandardMaterial({
+          map: tex, color: 0xd4dd88,
+          emissive: 0x2a1f00, emissiveIntensity: 0.25,
+          roughness: 0.6, side: THREE.DoubleSide,
+        });
+      } else if (st.imageData) {
+        const tex = await loadShellTexture(st.imageData);
+        shellMat = new THREE.MeshStandardMaterial({
+          map: tex || undefined,
+          color: tex ? 0xffffff : 0xA8D5A2,
+          roughness: 0.65, side: THREE.DoubleSide,
+        });
       } else {
-        shellMaterial = new THREE.MeshStandardMaterial({
-          color: isHero ? 0xB8CC58 : 0x55aa55,
-          side: THREE.DoubleSide,
+        shellMat = new THREE.MeshStandardMaterial({
+          color: 0xA8D5A2, roughness: 0.65, side: THREE.DoubleSide,
         });
       }
 
-      const group = createTurtleGroup(shellMaterial);
+      const group = createTurtleGroup(shellMat);
       group.scale.set(scale, scale, scale);
 
-      // Base orientation: tilt forward so shell top faces camera
-      group.rotation.x = -1.22; // ~-70 degrees
-
-      // Starting position
-      const dir = serverTurtle.direction || 1;
+      // Initial position & heading
+      const dir = st.direction || 1;
+      // direction 1 = moving right (+X), heading = -π/2
+      // direction -1 = moving left (-X), heading = π/2
+      const initHeading = dir > 0 ? -Math.PI / 2 : Math.PI / 2;
       const startX = dir > 0 ? TANK.xMin - 2 : TANK.xMax + 2;
-      const startY = (Math.random() - 0.5) * (TANK.yMax - TANK.yMin) * 0.6;
-      const startZ = (Math.random() - 0.5) * (TANK.zMax - TANK.zMin) * 0.6;
+      const startY = (Math.random() - 0.5) * 6;
+      const startZ = (Math.random() - 0.5) * 8;
       group.position.set(startX, startY, startZ);
+      group.rotation.order = 'YXZ';
 
       scene.add(group);
 
-      // Map server speed (30-100) to 3D speed (~0.5-2.0)
-      const mappedSpeed = 0.5 + ((serverTurtle.speed - 30) / 70) * 1.5;
-      const speed = isHero ? mappedSpeed * 0.6 : mappedSpeed;
+      // Map server speed (30-100) to 3D speed
+      const mapped = 1.0 + ((st.speed - 30) / 70) * 2.5;
+      const speed = isHero ? mapped * 0.65 : mapped;
 
-      // Create label div
+      // Label
       const labelDiv = document.createElement('div');
       labelDiv.className = 'turtle-label';
-      labelDiv.textContent = serverTurtle.name || '';
+      labelDiv.textContent = st.name || '';
       labelDiv.style.opacity = '0';
       labelsDiv.appendChild(labelDiv);
 
       const state = {
-        id: serverTurtle.id,
-        name: serverTurtle.name || '',
-        isHero: isHero,
-        // Velocity
-        vx: speed * dir,
-        vy: (Math.random() - 0.5) * 0.3,
-        vz: (Math.random() - 0.5) * 0.3,
-        // Bob
-        phase: serverTurtle.phase || Math.random() * Math.PI * 2,
-        amplitude: isHero ? 0.03 : 0.03,
-        // Rotation
-        baseRotX: -1.22,
-        currentRotY: 0,
-        targetRotY: 0,
-        // Flipper speed
-        flipperFreq: 3 + speed * 1.5,
-        // Name fade
+        id: st.id,
+        name: st.name || '',
+        isHero,
+        speed,
+        // Orientation
+        heading: initHeading,
+        swimPitch: 0,
+        // Double-smoothed targets: raw → smooth → heading
+        rawTargetH: initHeading,
+        rawTargetP: 0,
+        smoothTargetH: initHeading,
+        smoothTargetP: 0,
+        wanderHeading: initHeading,
+        wanderPitch: 0,
+        wanderTimer: 3 + Math.random() * 4,
+        wanderInterval: 5 + Math.random() * 6,
+        // Visual
+        baseTilt: -0.42,   // nose down → shows back to camera
+        phase: st.phase || Math.random() * Math.PI * 2,
+        flipperFreq: 2.5 + speed * 0.8,
+        bankAngle: 0,      // smoothed bank
+        // Name
         nameOpacity: 0,
         nameTimer: 0,
-        namePhase: serverTurtle.name ? 'fadein' : 'done',
+        namePhase: st.name ? 'fadein' : 'done',
       };
 
-      return { group, state, labelDiv, shellMaterial };
+      return { group, state, labelDiv, shellMat };
     }
 
-    // --- Particles (bubble points) ---
-    const PARTICLE_COUNT = 50;
-    const particlePositions = new Float32Array(PARTICLE_COUNT * 3);
-
-    function initParticlePositions() {
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        particlePositions[i * 3]     = (Math.random() - 0.5) * (TANK.xMax - TANK.xMin);
-        particlePositions[i * 3 + 1] = (Math.random() - 0.5) * (TANK.yMax - TANK.yMin);
-        particlePositions[i * 3 + 2] = (Math.random() - 0.5) * (TANK.zMax - TANK.zMin);
-      }
-    }
-    initParticlePositions();
-
-    const particleGeo = new THREE.BufferGeometry();
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    const particleMat = new THREE.PointsMaterial({
-      color: 0xccddff,
-      size: 0.08,
-      transparent: true,
-      opacity: 0.5,
-      sizeAttenuation: true,
-    });
-    const particlePoints = new THREE.Points(particleGeo, particleMat);
-    scene.add(particlePoints);
-
-    function updateParticles(dt) {
-      const pos = particleGeo.attributes.position.array;
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        pos[i * 3 + 1] += dt * 0.4; // drift up
-        pos[i * 3]     += (Math.sin(i * 1.7 + performance.now() * 0.001) * 0.002); // gentle sway
-
-        // Wrap at top
-        if (pos[i * 3 + 1] > TANK.yMax) {
-          pos[i * 3 + 1] = TANK.yMin;
-          pos[i * 3]     = (Math.random() - 0.5) * (TANK.xMax - TANK.xMin);
-          pos[i * 3 + 2] = (Math.random() - 0.5) * (TANK.zMax - TANK.zMin);
-        }
-      }
-      particleGeo.attributes.position.needsUpdate = true;
-    }
-
-    // --- Project 3D to screen ---
-    const _v = new THREE.Vector3();
-    function projectToScreen(position) {
-      _v.copy(position);
-      _v.project(camera);
-      return {
-        x: ( _v.x *  0.5 + 0.5) * window.innerWidth,
-        y: (-_v.y *  0.5 + 0.5) * window.innerHeight,
-      };
-    }
-
-    // --- Update turtle movement ---
+    // --- Movement ---
     function updateTurtleMovement(entry, dt, time) {
       const s = entry.state;
       const g = entry.group;
+      const pos = g.position;
 
-      // Move
-      g.position.x += s.vx * dt;
-      g.position.y += s.vy * dt;
-      g.position.z += s.vz * dt;
+      // --- Wander: gradually drift toward new random directions ---
+      s.wanderTimer -= dt;
+      if (s.wanderTimer <= 0) {
+        s.wanderTimer = s.wanderInterval;
+        // Gentle heading change: ±50° from current
+        s.wanderHeading = s.heading + (Math.random() - 0.5) * 1.75;
+        // Gentle pitch: ±18°
+        s.wanderPitch = (Math.random() - 0.5) * 0.6;
+      }
 
-      // Vertical bob
-      g.position.y += Math.sin(time * 1.5 + s.phase) * s.amplitude;
+      // --- Compute desired direction (wander + wall avoidance) ---
+      let desX = -Math.sin(s.wanderHeading) * Math.cos(s.wanderPitch);
+      let desY = Math.sin(s.wanderPitch);
+      let desZ = -Math.cos(s.wanderHeading) * Math.cos(s.wanderPitch);
 
-      // Boundary bounce
-      if (g.position.x < TANK.xMin) { g.position.x = TANK.xMin; s.vx = Math.abs(s.vx); }
-      if (g.position.x > TANK.xMax) { g.position.x = TANK.xMax; s.vx = -Math.abs(s.vx); }
-      if (g.position.y < TANK.yMin) { g.position.y = TANK.yMin; s.vy = Math.abs(s.vy); }
-      if (g.position.y > TANK.yMax) { g.position.y = TANK.yMax; s.vy = -Math.abs(s.vy); }
-      if (g.position.z < TANK.zMin) { g.position.z = TANK.zMin; s.vz = Math.abs(s.vz); }
-      if (g.position.z > TANK.zMax) { g.position.z = TANK.zMax; s.vz = -Math.abs(s.vz); }
+      // Wall avoidance: gentle repulsion that grows near walls
+      const margin = 4;
+      const force = 2.5;
+      const nudge = (dist, limit) => {
+        const t = Math.max(0, 1 - dist / limit);
+        return t * t * force;
+      };
+      if (pos.x < TANK.xMin + margin) desX += nudge(pos.x - TANK.xMin, margin);
+      if (pos.x > TANK.xMax - margin) desX -= nudge(TANK.xMax - pos.x, margin);
+      if (pos.y < TANK.yMin + margin) desY += nudge(pos.y - TANK.yMin, margin);
+      if (pos.y > TANK.yMax - margin) desY -= nudge(TANK.yMax - pos.y, margin);
+      if (pos.z < TANK.zMin + margin) desZ += nudge(pos.z - TANK.zMin, margin);
+      if (pos.z > TANK.zMax - margin) desZ -= nudge(TANK.zMax - pos.z, margin);
 
-      // Rotation: Y heading from velocity, clamped to ±45°
-      const targetY = Math.atan2(s.vx, s.vz);
-      const clampedY = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, targetY));
-      s.targetRotY = clampedY;
-      s.currentRotY += (s.targetRotY - s.currentRotY) * Math.min(1, dt * 3);
+      // Raw target from desired direction (can jump)
+      const hLen = Math.sqrt(desX * desX + desZ * desZ);
+      s.rawTargetH = Math.atan2(-desX, -desZ);
+      s.rawTargetP = Math.atan2(desY, Math.max(hLen, 0.01));
+      s.rawTargetP = Math.max(-0.35, Math.min(0.35, s.rawTargetP));
 
-      // X wobble for swimming motion (±10° around base tilt)
-      const wobble = Math.sin(time * 2 + s.phase) * 0.17; // ~10 degrees
+      // Double-smoothing: raw → smoothTarget → heading
+      // Layer 1: smooth the target itself (absorbs jumps)
+      const smoothRate = Math.min(1, dt * 0.8);
+      s.smoothTargetH = lerpAngle(s.smoothTargetH, s.rawTargetH, smoothRate);
+      s.smoothTargetP += (s.rawTargetP - s.smoothTargetP) * smoothRate;
 
-      g.rotation.x = s.baseRotX + wobble;
-      g.rotation.y = s.currentRotY;
+      // Layer 2: heading follows smoothed target
+      const turnRate = Math.min(1, dt * 1.2);
+      s.heading = lerpAngle(s.heading, s.smoothTargetH, turnRate);
+      s.swimPitch += (s.smoothTargetP - s.swimPitch) * turnRate;
 
-      // Flipper animation
-      const children = g.children;
-      for (const child of children) {
-        if (child.name === 'fl_front_left') {
-          child.rotation.z = Math.sin(time * s.flipperFreq) * 0.35; // ~20°
-        } else if (child.name === 'fl_front_right') {
-          child.rotation.z = Math.sin(time * s.flipperFreq + Math.PI) * 0.35;
-        } else if (child.name === 'fl_back_left') {
-          child.rotation.z = Math.sin(time * s.flipperFreq + 1.0) * 0.26; // ~15°
-        } else if (child.name === 'fl_back_right') {
-          child.rotation.z = Math.sin(time * s.flipperFreq + 1.0 + Math.PI) * 0.26;
+      // --- Move forward along heading/pitch ---
+      const cp = Math.cos(s.swimPitch);
+      const dx = -Math.sin(s.heading) * cp;
+      const dy = Math.sin(s.swimPitch);
+      const dz = -Math.cos(s.heading) * cp;
+
+      pos.x += dx * s.speed * dt;
+      pos.y += dy * s.speed * dt;
+      pos.z += dz * s.speed * dt;
+
+      // Gentle bob
+      pos.y += Math.sin(time * 1.2 + s.phase) * 0.012;
+
+      // Hard clamp (safety net)
+      pos.x = Math.max(TANK.xMin, Math.min(TANK.xMax, pos.x));
+      pos.y = Math.max(TANK.yMin, Math.min(TANK.yMax, pos.y));
+      pos.z = Math.max(TANK.zMin, Math.min(TANK.zMax, pos.z));
+
+      // --- Visual rotation (all smoothed) ---
+      const swimWobble = Math.sin(time * 1.8 + s.phase) * 0.06;
+      g.rotation.y = s.heading;
+      g.rotation.x = s.baseTilt + s.swimPitch * 0.7 + swimWobble;
+
+      // Smooth bank into turns
+      const desiredBank = -normalizeAngle(s.smoothTargetH - s.heading) * 0.2;
+      s.bankAngle += (desiredBank - s.bankAngle) * Math.min(1, dt * 2);
+      g.rotation.z = s.bankAngle;
+
+      // --- Flipper animation ---
+      const ft = time * s.flipperFreq;
+      for (const child of g.children) {
+        switch (child.name) {
+          case 'fl_fl': child.rotation.z =  Math.sin(ft) * 0.55; break;
+          case 'fl_fr': child.rotation.z = -Math.sin(ft) * 0.55; break;
+          case 'fl_bl': child.rotation.z =  Math.sin(ft * 0.7 + 1.5) * 0.2; break;
+          case 'fl_br': child.rotation.z = -Math.sin(ft * 0.7 + 1.5) * 0.2; break;
         }
       }
 
-      // Name label fade
+      // --- Name fade ---
       if (s.namePhase === 'fadein') {
         s.nameOpacity = Math.min(1, s.nameOpacity + dt);
-        if (s.nameOpacity >= 1) {
-          s.namePhase = 'visible';
-          s.nameTimer = 0;
-        }
+        if (s.nameOpacity >= 1) { s.namePhase = 'visible'; s.nameTimer = 0; }
       } else if (s.namePhase === 'visible') {
         s.nameTimer += dt;
-        if (s.nameTimer >= 30) {
-          s.namePhase = 'fadeout';
-        }
+        if (s.nameTimer >= 30) s.namePhase = 'fadeout';
       } else if (s.namePhase === 'fadeout') {
         s.nameOpacity = Math.max(0, s.nameOpacity - dt);
-        if (s.nameOpacity <= 0) {
-          s.namePhase = 'done';
-        }
+        if (s.nameOpacity <= 0) s.namePhase = 'done';
       }
     }
 
-    // --- Update label positions ---
+    // --- Particles ---
+    const PARTICLE_COUNT = 50;
+    const pPos = new Float32Array(PARTICLE_COUNT * 3);
+    (function initParticles() {
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        pPos[i*3]   = (Math.random()-0.5) * (TANK.xMax-TANK.xMin);
+        pPos[i*3+1] = (Math.random()-0.5) * (TANK.yMax-TANK.yMin);
+        pPos[i*3+2] = (Math.random()-0.5) * (TANK.zMax-TANK.zMin);
+      }
+    })();
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({
+      color: 0xccddff, size: 0.08, transparent: true, opacity: 0.45, sizeAttenuation: true,
+    })));
+
+    function updateParticles(dt) {
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        pPos[i*3+1] += dt * 0.35;
+        pPos[i*3]   += Math.sin(i*1.7 + performance.now()*0.001) * 0.002;
+        if (pPos[i*3+1] > TANK.yMax) {
+          pPos[i*3+1] = TANK.yMin;
+          pPos[i*3]   = (Math.random()-0.5) * (TANK.xMax-TANK.xMin);
+          pPos[i*3+2] = (Math.random()-0.5) * (TANK.zMax-TANK.zMin);
+        }
+      }
+      pGeo.attributes.position.needsUpdate = true;
+    }
+
+    // --- Projection helper ---
+    const _v = new THREE.Vector3();
+    function projectToScreen(position) {
+      _v.copy(position).project(camera);
+      return {
+        x: ( _v.x * 0.5 + 0.5) * innerWidth,
+        y: (-_v.y * 0.5 + 0.5) * innerHeight,
+      };
+    }
+
+    // --- Labels ---
     function updateLabels() {
-      for (const entry of turtleMap.values()) {
-        const s = entry.state;
-        const labelDiv = entry.labelDiv;
-
-        if (s.nameOpacity > 0 && s.name) {
-          const screen = projectToScreen(entry.group.position);
-          labelDiv.style.left = screen.x + 'px';
-          labelDiv.style.top = (screen.y - 30) + 'px';
-          labelDiv.style.opacity = String(s.nameOpacity);
+      for (const e of turtleMap.values()) {
+        const div = e.labelDiv;
+        if (e.state.nameOpacity > 0 && e.state.name) {
+          const p = projectToScreen(e.group.position);
+          div.style.left = p.x + 'px';
+          div.style.top = (p.y - 35) + 'px';
+          div.style.opacity = String(e.state.nameOpacity);
         } else {
-          labelDiv.style.opacity = '0';
+          div.style.opacity = '0';
         }
       }
     }
 
-    // --- Update title label tracking hero ---
     function updateTitle() {
-      const heroEntry = turtleMap.get('hero');
-      if (!heroEntry) {
-        titleLabel.style.opacity = '0';
-        return;
-      }
-
+      const hero = turtleMap.get('hero');
+      if (!hero) { titleLabel.style.opacity = '0'; return; }
       titleLabel.style.opacity = String(titleOpacity);
-
-      const screen = projectToScreen(heroEntry.group.position);
-      const titleY = Math.max(40, screen.y - 60);
-      titleLabel.style.left = screen.x + 'px';
-      titleLabel.style.top = titleY + 'px';
-
-      // Responsive font size
-      const fontSize = Math.min(48, window.innerWidth / 12);
-      titleLabel.style.fontSize = fontSize + 'px';
+      const p = projectToScreen(hero.group.position);
+      titleLabel.style.left = p.x + 'px';
+      titleLabel.style.top = Math.max(40, p.y - 65) + 'px';
+      titleLabel.style.fontSize = Math.min(48, innerWidth / 10) + 'px';
     }
 
     // --- Polling ---
     async function pollTurtles() {
       try {
         const knownIds = Array.from(turtleMap.keys()).join(',');
-        const url = `/api/turtles?eventCode=${encodeURIComponent(eventCode)}&knownIds=${encodeURIComponent(knownIds)}`;
-        const res = await fetch(url);
+        const res = await fetch(`/api/turtles?eventCode=${encodeURIComponent(eventCode)}&knownIds=${encodeURIComponent(knownIds)}`);
         if (!res.ok) return;
         const data = await res.json();
-
         const serverIds = new Set();
+
         for (const st of data.turtles) {
           serverIds.add(st.id);
-
           if (turtleMap.has(st.id)) {
-            // Existing: update name only
-            const entry = turtleMap.get(st.id);
-            entry.state.name = st.name;
-            entry.labelDiv.textContent = st.name || '';
+            const e = turtleMap.get(st.id);
+            e.state.name = st.name;
+            e.labelDiv.textContent = st.name || '';
           } else {
-            // New turtle
-            const entry = await createTurtle3D(st);
-            turtleMap.set(st.id, entry);
+            const e = await createTurtle3D(st);
+            turtleMap.set(st.id, e);
           }
         }
 
-        // Remove turtles no longer on server
-        for (const [id, entry] of turtleMap) {
+        for (const [id, e] of turtleMap) {
           if (!serverIds.has(id)) {
-            scene.remove(entry.group);
-            entry.labelDiv.remove();
-            // Dispose materials
-            if (entry.shellMaterial) {
-              if (entry.shellMaterial.map) entry.shellMaterial.map.dispose();
-              entry.shellMaterial.dispose();
+            scene.remove(e.group);
+            e.labelDiv.remove();
+            if (e.shellMat) {
+              if (e.shellMat.map) e.shellMat.map.dispose();
+              e.shellMat.dispose();
             }
             turtleMap.delete(id);
           }
         }
-      } catch (e) {
-        // Silent fail, retry next poll
-      }
+      } catch {}
     }
 
     function startPolling() {
@@ -562,7 +622,7 @@
       pollTimer = setInterval(pollTurtles, 3000);
     }
 
-    // --- Animation Loop ---
+    // --- Animation loop ---
     let lastFrame = performance.now();
 
     function animate(now) {
@@ -573,47 +633,28 @@
       lastFrame = now;
       const time = (now / 1000) - startTime;
 
-      // Fade in title
-      if (titleOpacity < 1) {
-        titleOpacity = Math.min(1, titleOpacity + dt * 0.5);
-      }
+      if (titleOpacity < 1) titleOpacity = Math.min(1, titleOpacity + dt * 0.5);
 
-      // Update turtles
-      for (const entry of turtleMap.values()) {
-        updateTurtleMovement(entry, dt, time);
-      }
-
-      // Update particles
+      for (const e of turtleMap.values()) updateTurtleMovement(e, dt, time);
       updateParticles(dt);
-
-      // Update HTML labels
       updateLabels();
       updateTitle();
-
-      // Render
       renderer.render(scene, camera);
     }
 
-    // --- Code Entry ---
+    // --- Code entry ---
     async function validateCode(code) {
-      try {
-        const res = await fetch(`/api/turtles?eventCode=${encodeURIComponent(code)}&knownIds=`);
-        return res.status;
-      } catch {
-        return 0;
-      }
+      try { return (await fetch(`/api/turtles?eventCode=${encodeURIComponent(code)}&knownIds=`)).status; }
+      catch { return 0; }
     }
 
     async function handleCodeSubmit() {
       const code = codeInput.value.trim();
       if (!code) return;
-
       codeError.textContent = '';
       codeSubmit.disabled = true;
       codeSubmit.textContent = 'Checking...';
-
       const status = await validateCode(code);
-
       if (status === 200) {
         eventCode = code;
         localStorage.setItem('turtleCode', code);
@@ -626,15 +667,12 @@
       } else {
         codeError.textContent = 'Connection error. Try again.';
       }
-
       codeSubmit.disabled = false;
       codeSubmit.textContent = 'Enter';
     }
 
     codeSubmit.addEventListener('click', handleCodeSubmit);
-    codeInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleCodeSubmit();
-    });
+    codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleCodeSubmit(); });
 
     function startAquarium() {
       aquariumRunning = true;
@@ -644,7 +682,7 @@
       requestAnimationFrame(animate);
     }
 
-    // --- Init: check for stored code ---
+    // --- Init ---
     (async () => {
       const stored = localStorage.getItem('turtleCode');
       if (stored) {
