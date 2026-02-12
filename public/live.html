@@ -648,6 +648,7 @@
         flipperFreq: 2.5 + speed * 0.8,
         bankAngle: 0,      // smoothed bank
         spinRemaining: 0,
+        spinTotal: 0,
         indicatorTimer: 0,
         cakeTimer: 0,
         comeCloserTimer: 0,
@@ -705,6 +706,9 @@
       const boostActive = s.comeCloserTimer > 0;
       if (boostActive) s.comeCloserTimer -= dt;
 
+      // Showcase mode: turtle is at front glass, presenting shell to camera
+      const showcaseActive = boostActive && pos.z > TANK.zMax - 4;
+
       // Double-smoothing: raw → smoothTarget → heading
       // Layer 1: smooth the target itself (absorbs jumps)
       const smoothRate = Math.min(1, dt * (boostActive ? 3.0 : 0.8));
@@ -716,16 +720,42 @@
       s.heading = lerpAngle(s.heading, s.smoothTargetH, turnRate);
       s.swimPitch += (s.smoothTargetP - s.swimPitch) * turnRate;
 
-      // --- Move forward along heading/pitch ---
-      const cp = Math.cos(s.swimPitch);
-      const dx = -Math.sin(s.heading) * cp;
-      const dy = Math.sin(s.swimPitch);
-      const dz = -Math.cos(s.heading) * cp;
+      if (showcaseActive) {
+        // Showcase: ease to front-center, turn around to show shell
+        const easeRate = Math.min(1, dt * 1.5);
+        pos.x += (0 - pos.x) * easeRate;
+        pos.y += (1 - pos.y) * easeRate;
+        pos.z += ((TANK.zMax - 0.5) - pos.z) * easeRate;
+        // Turn to face into the tank (heading=0 → shell faces camera)
+        s.heading = lerpAngle(s.heading, 0, Math.min(1, dt * 3));
+        s.swimPitch += (0 - s.swimPitch) * Math.min(1, dt * 3);
+        // Scale up so drawing is clearly visible
+        const targetScale = 1.4;
+        const curScale = g.scale.x;
+        const sc = curScale + (targetScale - curScale) * Math.min(1, dt * 2);
+        g.scale.set(sc, sc, sc);
+      } else {
+        // --- Normal forward movement ---
+        const cp = Math.cos(s.swimPitch);
+        const dx = -Math.sin(s.heading) * cp;
+        const dy = Math.sin(s.swimPitch);
+        const dz = -Math.cos(s.heading) * cp;
 
-      const moveSpeed = s.speed * (boostActive ? 2.0 : 1.0);
-      pos.x += dx * moveSpeed * dt;
-      pos.y += dy * moveSpeed * dt;
-      pos.z += dz * moveSpeed * dt;
+        const moveSpeed = s.speed * (boostActive ? 2.5 : 1.0);
+        pos.x += dx * moveSpeed * dt;
+        pos.y += dy * moveSpeed * dt;
+        pos.z += dz * moveSpeed * dt;
+        // Reset scale if returning from showcase
+        if (s.spinRemaining <= 0) {
+          const curScale = g.scale.x;
+          if (curScale > 1.01) {
+            const sc = curScale + (1 - curScale) * Math.min(1, dt * 2);
+            g.scale.set(sc, sc, sc);
+          } else if (curScale !== 1) {
+            g.scale.set(1, 1, 1);
+          }
+        }
+      }
 
       // Gentle bob
       pos.y += Math.sin(time * 1.2 + s.phase) * 0.012;
@@ -736,31 +766,56 @@
       pos.z = Math.max(TANK.zMin, Math.min(TANK.zMax, pos.z));
 
       // --- Visual rotation (all smoothed) ---
-      const swimWobble = Math.sin(time * 1.8 + s.phase) * 0.06;
-      g.rotation.y = s.heading;
-      g.rotation.x = s.baseTilt + s.swimPitch * 0.7 + swimWobble;
+      if (showcaseActive) {
+        // Tilt shell toward camera for clear view of drawing
+        const showcaseTilt = -0.75;
+        g.rotation.x += (showcaseTilt - g.rotation.x) * Math.min(1, dt * 3);
+        g.rotation.y = s.heading;
+        // No banking during showcase — keep steady
+        s.bankAngle += (0 - s.bankAngle) * Math.min(1, dt * 3);
+        g.rotation.z = s.bankAngle;
+      } else {
+        const swimWobble = Math.sin(time * 1.8 + s.phase) * 0.06;
+        g.rotation.y = s.heading;
+        g.rotation.x = s.baseTilt + s.swimPitch * 0.7 + swimWobble;
 
-      // Smooth bank into turns
-      const desiredBank = -normalizeAngle(s.smoothTargetH - s.heading) * 0.2;
-      s.bankAngle += (desiredBank - s.bankAngle) * Math.min(1, dt * 2);
-      g.rotation.z = s.bankAngle;
+        // Smooth bank into turns
+        const desiredBank = -normalizeAngle(s.smoothTargetH - s.heading) * 0.2;
+        s.bankAngle += (desiredBank - s.bankAngle) * Math.min(1, dt * 2);
+        g.rotation.z = s.bankAngle;
+      }
 
       // --- Barrel roll (spin command) ---
       if (s.spinRemaining > 0) {
-        const spinSpeed = Math.PI * 2; // full rotation per second
+        const spinSpeed = Math.PI * 8; // 4 rotations per second — fast!
         const spinStep = Math.min(s.spinRemaining, spinSpeed * dt);
         g.rotation.z += spinStep;
         s.spinRemaining -= spinStep;
+
+        // Progress 0→1 over the spin
+        const progress = 1 - (s.spinRemaining / s.spinTotal);
+        // Vertical pop: arc up then back down
+        pos.y += Math.sin(progress * Math.PI) * 0.4;
+        // Scale pulse: grow then shrink
+        const sc = 1 + Math.sin(progress * Math.PI) * 0.25;
+        g.scale.set(sc, sc, sc);
+      } else if (s.spinTotal > 0) {
+        // Reset scale after spin ends (showcase handles its own scale)
+        if (!showcaseActive) g.scale.set(1, 1, 1);
+        s.spinTotal = 0;
       }
 
       // --- Flipper animation ---
-      const ft = time * s.flipperFreq;
+      const spinning = s.spinRemaining > 0;
+      const flipMult = spinning ? 3 : 1;  // flap 3x faster during spin
+      const flipAmp = spinning ? 1.5 : 1; // bigger flap amplitude during spin
+      const ft = time * s.flipperFreq * flipMult;
       for (const child of g.children) {
         switch (child.name) {
-          case 'fl_fl': child.rotation.z =  Math.sin(ft) * 0.55; break;
-          case 'fl_fr': child.rotation.z = -Math.sin(ft) * 0.55; break;
-          case 'fl_bl': child.rotation.z =  Math.sin(ft * 0.7 + 1.5) * 0.2; break;
-          case 'fl_br': child.rotation.z = -Math.sin(ft * 0.7 + 1.5) * 0.2; break;
+          case 'fl_fl': child.rotation.z =  Math.sin(ft) * 0.55 * flipAmp; break;
+          case 'fl_fr': child.rotation.z = -Math.sin(ft) * 0.55 * flipAmp; break;
+          case 'fl_bl': child.rotation.z =  Math.sin(ft * 0.7 + 1.5) * 0.2 * flipAmp; break;
+          case 'fl_br': child.rotation.z = -Math.sin(ft * 0.7 + 1.5) * 0.2 * flipAmp; break;
         }
       }
 
@@ -1301,8 +1356,8 @@
 
       switch (command) {
         case 'come_closer': {
-          // Aim at front-center of tank (within wall-safe zone)
-          const targetX = 0, targetY = 0, targetZ = TANK.zMax - 6;
+          // Aim at front glass so shell is right up against the camera
+          const targetX = 0, targetY = 1, targetZ = TANK.zMax - 0.5;
           const dx = targetX - entry.group.position.x;
           const dy = targetY - entry.group.position.y;
           const dz = targetZ - entry.group.position.z;
@@ -1310,9 +1365,9 @@
           s.wanderHeading = Math.atan2(-dx, -dz);
           s.wanderPitch = Math.atan2(dy, Math.max(hLen, 0.01));
           s.wanderPitch = Math.max(-0.35, Math.min(0.35, s.wanderPitch));
-          s.wanderTimer = 12;
+          s.wanderTimer = 15;
           s.wanderInterval = s.wanderTimer;
-          s.comeCloserTimer = 6; // boost speed & responsiveness for 6s
+          s.comeCloserTimer = 10; // approach + showcase for 10s
           break;
         }
 
@@ -1327,8 +1382,9 @@
           break;
 
         case 'spin':
-          // Trigger a dramatic barrel roll (2 full rotations)
-          s.spinRemaining = (s.spinRemaining || 0) + Math.PI * 4;
+          // Trigger a dramatic barrel roll with pop and scale pulse
+          s.spinTotal = Math.PI * 6;  // 3 full rotations
+          s.spinRemaining = s.spinTotal;
           break;
       }
     }
