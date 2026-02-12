@@ -723,6 +723,14 @@
       s.bankAngle += (desiredBank - s.bankAngle) * Math.min(1, dt * 2);
       g.rotation.z = s.bankAngle;
 
+      // --- Barrel roll (spin command) ---
+      if (s.spinRemaining > 0) {
+        const spinSpeed = Math.PI * 2; // full rotation per second
+        const spinStep = Math.min(s.spinRemaining, spinSpeed * dt);
+        g.rotation.z += spinStep;
+        s.spinRemaining -= spinStep;
+      }
+
       // --- Flipper animation ---
       const ft = time * s.flipperFreq;
       for (const child of g.children) {
@@ -1245,6 +1253,45 @@
       titleLabel.style.fontSize = Math.min(48, innerWidth / 10) + 'px';
     }
 
+    // --- Command handlers ---
+    function handleCommand(entry, command) {
+      const s = entry.state;
+      switch (command) {
+        case 'come_closer':
+          // Aim at front-center of tank (near camera)
+          const targetX = 0, targetY = 0, targetZ = TANK.zMax - 2;
+          const dx = targetX - entry.group.position.x;
+          const dy = targetY - entry.group.position.y;
+          const dz = targetZ - entry.group.position.z;
+          const hLen = Math.sqrt(dx * dx + dz * dz);
+          s.wanderHeading = Math.atan2(-dx, -dz);
+          s.wanderPitch = Math.atan2(dy, Math.max(hLen, 0.01));
+          s.wanderPitch = Math.max(-0.35, Math.min(0.35, s.wanderPitch));
+          s.wanderTimer = 10; // hold this heading long enough to arrive + show off
+          s.wanderInterval = s.wanderTimer;
+          break;
+
+        case 'birthday_cake':
+          // Toggle cake: add if missing, remove if present
+          if (!entry.flames) {
+            const cakeData = createBirthdayCake();
+            entry.group.add(cakeData.cakeGroup);
+            entry.flames = cakeData.flames;
+          } else {
+            // Remove existing cake
+            const existing = entry.group.getObjectByName('cake');
+            if (existing) entry.group.remove(existing);
+            entry.flames = null;
+          }
+          break;
+
+        case 'spin':
+          // Trigger a barrel roll
+          s.spinRemaining = (s.spinRemaining || 0) + Math.PI * 2;
+          break;
+      }
+    }
+
     // --- Polling ---
     async function pollTurtles() {
       try {
@@ -1260,9 +1307,12 @@
             const e = turtleMap.get(st.id);
             e.state.name = st.name;
             e.labelDiv.textContent = st.name || '';
+            // Handle commands
+            if (st.command) handleCommand(e, st.command);
           } else {
             const e = await createTurtle3D(st);
             turtleMap.set(st.id, e);
+            if (st.command) handleCommand(e, st.command);
           }
         }
 

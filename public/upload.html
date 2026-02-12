@@ -98,6 +98,47 @@
       background: #e0ffe0;
       color: #060;
     }
+    /* Control panel (shown after upload) */
+    .control-panel { display: none; text-align: center; }
+    .control-panel h2 {
+      color: #0a4d6e;
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+    .control-panel .success-msg {
+      color: #060;
+      background: #e0ffe0;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+    .action-btn {
+      width: 100%;
+      padding: 18px 16px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 56px;
+      transition: opacity 0.2s, transform 0.1s;
+      color: white;
+    }
+    .action-btn:active:not(:disabled) { transform: scale(0.97); }
+    .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .action-btn.closer  { background: #0d7fa5; }
+    .action-btn.cake    { background: #d4609a; }
+    .action-btn.spin    { background: #e08830; }
+    .cooldown-bar {
+      height: 3px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 2px;
+      margin-top: 6px;
+      transition: width linear;
+      width: 0;
+    }
   </style>
 </head>
 <body>
@@ -117,12 +158,31 @@
       <button type="submit" id="submitBtn">Add My Turtle!</button>
     </form>
     <div class="message" id="message"></div>
+
+    <div class="control-panel" id="controlPanel">
+      <h2 id="turtleNameDisplay"></h2>
+      <div class="success-msg">Your turtle is swimming in the aquarium!</div>
+      <button class="action-btn closer" data-action="come_closer" data-cooldown="8">
+        Come Closer
+      </button>
+      <button class="action-btn cake" data-action="birthday_cake" data-cooldown="5">
+        Birthday Cake
+      </button>
+      <button class="action-btn spin" data-action="spin" data-cooldown="6">
+        Do a Spin
+      </button>
+    </div>
   </div>
 
   <script>
     const form = document.getElementById('uploadForm');
     const msg = document.getElementById('message');
     const btn = document.getElementById('submitBtn');
+    const controlPanel = document.getElementById('controlPanel');
+    const turtleNameDisplay = document.getElementById('turtleNameDisplay');
+
+    let turtleId = null;
+    let savedEventCode = '';
 
     // Pre-fill event code from localStorage
     const stored = localStorage.getItem('turtleCode');
@@ -150,15 +210,16 @@
           return;
         }
 
-        // Save event code on success
-        localStorage.setItem('turtleCode', document.getElementById('eventCode').value);
+        // Save event code and turtle info
+        savedEventCode = document.getElementById('eventCode').value;
+        localStorage.setItem('turtleCode', savedEventCode);
+        turtleId = data.id;
 
-        msg.className = 'message success';
-        msg.textContent = "Your turtle is swimming in Lily's Turtles!";
-        msg.style.display = 'block';
-        btn.textContent = 'Going to aquarium...';
-
-        setTimeout(() => { window.location.href = '/live'; }, 3000);
+        // Switch to control panel
+        form.style.display = 'none';
+        msg.style.display = 'none';
+        turtleNameDisplay.textContent = data.name;
+        controlPanel.style.display = 'block';
       } catch (err) {
         msg.className = 'message error';
         msg.textContent = 'Network error. Please try again.';
@@ -167,6 +228,32 @@
         btn.textContent = 'Add My Turtle!';
       }
     });
+
+    // Action buttons with cooldown
+    for (const actionBtn of controlPanel.querySelectorAll('.action-btn')) {
+      actionBtn.addEventListener('click', async () => {
+        if (actionBtn.disabled || !turtleId) return;
+        const action = actionBtn.dataset.action;
+        const cooldown = parseInt(actionBtn.dataset.cooldown, 10) * 1000;
+
+        // Disable all buttons during cooldown
+        const allBtns = controlPanel.querySelectorAll('.action-btn');
+        allBtns.forEach(b => b.disabled = true);
+
+        try {
+          await fetch(`/api/turtle/${turtleId}/command`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, eventCode: savedEventCode }),
+          });
+        } catch {}
+
+        // Cooldown then re-enable
+        setTimeout(() => {
+          allBtns.forEach(b => b.disabled = false);
+        }, cooldown);
+      });
+    }
   </script>
 </body>
 </html>

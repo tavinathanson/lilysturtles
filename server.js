@@ -17,6 +17,7 @@ const rateLimitMap = new Map();
 let heroTurtle = null;
 const turtles = [];
 let nextId = 1;
+const commandQueue = new Map(); // turtleId -> { action, timestamp }
 
 // Multer config: memory storage, 5MB limit, images only
 const upload = multer({
@@ -149,6 +150,12 @@ app.get('/upload', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'upload.html'));
 });
 
+app.get('/flyer', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'flyer.html'));
+});
+
+app.use(express.json());
+
 // Serve saved drawings as static files
 app.use('/drawings', express.static(DRAWINGS_DIR));
 
@@ -193,6 +200,24 @@ app.get('/gallery', (req, res) => {
 <div class="count">${files.length} drawing${files.length !== 1 ? 's' : ''}</div>
 ${files.length ? `<div class="grid">${cards}</div>` : '<div class="empty">No drawings yet. Upload some turtles!</div>'}
 </body></html>`);
+});
+
+app.post('/api/turtle/:id/command', (req, res) => {
+  const { action, eventCode } = req.body;
+  if (eventCode !== EVENT_CODE) {
+    return res.status(403).json({ error: 'Wrong event code.' });
+  }
+  const validActions = ['come_closer', 'birthday_cake', 'spin'];
+  if (!validActions.includes(action)) {
+    return res.status(400).json({ error: 'Invalid action.' });
+  }
+  const id = req.params.id;
+  const exists = turtles.some(t => t.id === id) || (heroTurtle && heroTurtle.id === id);
+  if (!exists) {
+    return res.status(404).json({ error: 'Turtle not found.' });
+  }
+  commandQueue.set(id, { action, timestamp: Date.now() });
+  res.json({ success: true });
 });
 
 app.post('/api/upload', upload.single('photo'), async (req, res) => {
@@ -273,12 +298,20 @@ app.get('/api/turtles', (req, res) => {
   const allTurtles = heroTurtle ? [heroTurtle, ...turtles] : [...turtles];
 
   const result = allTurtles.map(t => {
+    let entry;
     if (knownSet.has(t.id)) {
       // Client already has the image, omit imageData
       const { imageData, ...rest } = t;
-      return rest;
+      entry = rest;
+    } else {
+      entry = { ...t };
     }
-    return { ...t };
+    // Attach pending command (one-shot: deliver then clear)
+    if (commandQueue.has(t.id)) {
+      entry.command = commandQueue.get(t.id).action;
+      commandQueue.delete(t.id);
+    }
+    return entry;
   });
 
   res.json({ turtles: result });

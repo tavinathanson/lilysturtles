@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lily's Turtles - Flyer</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .controls {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .controls label { font-weight: 700; font-size: 14px; color: #333; }
+  .controls input {
+    font-family: monospace;
+    font-size: 14px;
+    padding: 6px 10px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    width: 360px;
+  }
+  .controls button {
+    background: #14a3c7;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .controls button:hover { background: #0e8ba8; }
+
+  .flyer {
+    width: 8.5in;
+    height: 11in;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding: 0.75in;
+  }
+
+  .title {
+    font-size: 72px;
+    font-weight: 900;
+    color: #0e7fa5;
+    text-align: center;
+  }
+
+  .turtle-art {
+    width: 200px;
+    height: 200px;
+  }
+
+  .qr-wrap {
+    border: 6px solid #0e7fa5;
+    border-radius: 20px;
+    padding: 24px;
+    background: white;
+  }
+  .qr-wrap img { display: block; width: 400px; height: 400px; }
+
+  .scan-text {
+    font-size: 28px;
+    font-weight: 800;
+    color: #2e7d32;
+    text-align: center;
+  }
+
+  @media print {
+    @page { size: letter; margin: 0; }
+    body { background: white; padding: 0; }
+    .controls { display: none !important; }
+    .flyer {
+      box-shadow: none;
+      border-radius: 0;
+      width: 100%;
+      height: 100vh;
+      min-height: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <label>URL:</label>
+  <input type="text" id="urlInput" value="https://lilysturtles-production.up.railway.app/upload">
+  <button onclick="updateQR()">Update QR</button>
+</div>
+
+<div class="flyer">
+  <div class="title">Lily's Turtles</div>
+
+  <svg class="turtle-art" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- Shell -->
+    <ellipse cx="100" cy="100" rx="60" ry="50" fill="#2e7d32"/>
+    <ellipse cx="100" cy="100" rx="60" ry="50" fill="none" stroke="#1b5e20" stroke-width="3"/>
+    <!-- Shell pattern -->
+    <ellipse cx="100" cy="95" rx="30" ry="24" fill="none" stroke="#4caf50" stroke-width="2.5"/>
+    <line x1="100" y1="71" x2="100" y2="50" stroke="#4caf50" stroke-width="2.5"/>
+    <line x1="75" y1="82" x2="55" y2="65" stroke="#4caf50" stroke-width="2.5"/>
+    <line x1="125" y1="82" x2="145" y2="65" stroke="#4caf50" stroke-width="2.5"/>
+    <line x1="72" y1="102" x2="45" y2="105" stroke="#4caf50" stroke-width="2.5"/>
+    <line x1="128" y1="102" x2="155" y2="105" stroke="#4caf50" stroke-width="2.5"/>
+    <line x1="80" y1="118" x2="65" y2="140" stroke="#4caf50" stroke-width="2.5"/>
+    <line x1="120" y1="118" x2="135" y2="140" stroke="#4caf50" stroke-width="2.5"/>
+    <!-- Head -->
+    <ellipse cx="100" cy="42" rx="18" ry="16" fill="#4caf50"/>
+    <circle cx="93" cy="38" r="3" fill="#1b5e20"/>
+    <circle cx="107" cy="38" r="3" fill="#1b5e20"/>
+    <path d="M94 46 Q100 50 106 46" fill="none" stroke="#1b5e20" stroke-width="2" stroke-linecap="round"/>
+    <!-- Legs -->
+    <ellipse cx="48" cy="75" rx="18" ry="10" fill="#4caf50" transform="rotate(-30 48 75)"/>
+    <ellipse cx="152" cy="75" rx="18" ry="10" fill="#4caf50" transform="rotate(30 152 75)"/>
+    <ellipse cx="48" cy="130" rx="18" ry="10" fill="#4caf50" transform="rotate(20 48 130)"/>
+    <ellipse cx="152" cy="130" rx="18" ry="10" fill="#4caf50" transform="rotate(-20 152 130)"/>
+    <!-- Tail -->
+    <path d="M100 150 Q102 168 96 170" stroke="#4caf50" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </svg>
+
+  <div class="qr-wrap">
+    <img id="qr" alt="QR Code">
+  </div>
+
+  <div class="scan-text">Scan to draw a turtle!</div>
+</div>
+
+<script>
+function updateQR() {
+  const url = document.getElementById('urlInput').value.trim();
+  const qrImg = document.getElementById('qr');
+  qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' + encodeURIComponent(url);
+}
+updateQR();
+</script>
+</body>
+</html>
