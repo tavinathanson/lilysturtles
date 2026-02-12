@@ -98,6 +98,11 @@
       background: #e0ffe0;
       color: #060;
     }
+    .message.hint {
+      display: block;
+      background: #fff3cd;
+      color: #856404;
+    }
     /* Control panel (shown after upload) */
     .control-panel { display: none; text-align: center; }
     .control-panel h2 {
@@ -215,9 +220,17 @@
         localStorage.setItem('turtleCode', savedEventCode);
         turtleId = data.id;
 
+        // Show hint if circle wasn't fully detected
+        if (data.hint) {
+          msg.className = 'message hint';
+          msg.textContent = data.hint;
+          msg.style.display = 'block';
+        } else {
+          msg.style.display = 'none';
+        }
+
         // Switch to control panel
         form.style.display = 'none';
-        msg.style.display = 'none';
         turtleNameDisplay.textContent = data.name;
         controlPanel.style.display = 'block';
       } catch (err) {
