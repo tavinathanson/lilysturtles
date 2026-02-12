@@ -22,10 +22,17 @@
     .turtle-label {
       position: absolute;
       color: white;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-weight: bold;
-      font-size: 14px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      text-shadow:
+        0 0 8px rgba(0,0,0,0.95),
+        0 0 16px rgba(0,0,0,0.7),
+        0 2px 4px rgba(0,0,0,0.9),
+        1px 1px 0 rgba(0,0,0,0.8),
+        -1px -1px 0 rgba(0,0,0,0.8),
+        1px -1px 0 rgba(0,0,0,0.8),
+        -1px 1px 0 rgba(0,0,0,0.8);
       transform: translate(-50%, -100%);
       white-space: nowrap;
     }
@@ -35,7 +42,15 @@
       font-family: 'Nunito', sans-serif;
       font-weight: 800;
       font-size: 48px;
-      text-shadow: 0 0 15px rgba(255,255,255,0.5), 0 0 30px rgba(255,255,255,0.2);
+      text-shadow:
+        0 0 20px rgba(255,255,255,0.7),
+        0 0 40px rgba(255,255,255,0.35),
+        0 0 6px rgba(0,0,0,0.9),
+        0 3px 6px rgba(0,0,0,0.8),
+        2px 2px 0 rgba(0,0,0,0.6),
+        -2px -2px 0 rgba(0,0,0,0.6),
+        2px -2px 0 rgba(0,0,0,0.6),
+        -2px 2px 0 rgba(0,0,0,0.6);
       transform: translate(-50%, -100%);
       white-space: nowrap;
       opacity: 0;
@@ -133,13 +148,17 @@
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
     dirLight.position.set(5, 12, 8);
     scene.add(dirLight);
-    const fillLight = new THREE.DirectionalLight(0x4488cc, 0.3);
+    const fillLight = new THREE.DirectionalLight(0x4488cc, 0.45);
     fillLight.position.set(-3, 10, -2);
     scene.add(fillLight);
+    // Rim light from behind to outline turtles against the dark background
+    const rimLight = new THREE.DirectionalLight(0x88bbee, 0.35);
+    rimLight.position.set(0, 5, -10);
+    scene.add(rimLight);
 
     // --- Resize ---
     addEventListener('resize', () => {
@@ -181,8 +200,8 @@
     const eyeGeo = new THREE.SphereGeometry(0.038, 8, 6);
     const pupilGeo = new THREE.SphereGeometry(0.024, 6, 4);
 
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0x5A8A3A, roughness: 0.8 });
-    const darkSkinMat = new THREE.MeshStandardMaterial({ color: 0x4A7A2E, roughness: 0.8 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x5A8A3A, roughness: 0.75, emissive: 0x0a1a05, emissiveIntensity: 0.2 });
+    const darkSkinMat = new THREE.MeshStandardMaterial({ color: 0x4A7A2E, roughness: 0.75, emissive: 0x081505, emissiveIntensity: 0.2 });
     const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const pupilMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
 
@@ -285,16 +304,16 @@
       const MID = H / 2; // equator line
 
       // --- Top half: hexagonal honeycomb shell pattern ---
-      // Dark grout base
-      x.fillStyle = '#2E4010';
+      // Dark grout base — deep for projector contrast
+      x.fillStyle = '#1A2A08';
       x.fillRect(0, 0, W, MID);
 
-      // Hex tile colors — alternating warm greens/golds
+      // Hex tile colors — saturated warm greens/golds for projector visibility
       const hexColors = [
-        ['#C8D462', '#A4B44A', '#869832'],
-        ['#B0C050', '#92A43C', '#78882C'],
-        ['#D4DC6E', '#B8C254', '#9AA840'],
-        ['#BCC858', '#9CAC40', '#809430'],
+        ['#D4E06A', '#A8B840', '#6E7E22'],
+        ['#C0D050', '#8EA030', '#607818'],
+        ['#E0E878', '#C0CC48', '#8A9830'],
+        ['#CCDA58', '#98B030', '#6C8420'],
       ];
 
       // Draw a single filled hexagon
@@ -317,9 +336,9 @@
         x.fillStyle = gf;
         x.fill();
 
-        // Dark groove border
-        x.strokeStyle = '#263A0C';
-        x.lineWidth = 3.5;
+        // Dark groove border — thick for projector contrast
+        x.strokeStyle = '#162808';
+        x.lineWidth = 4.5;
         x.stroke();
 
         // Inner growth ring
@@ -481,13 +500,30 @@
           ctx.fillRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0);
 
+          // --- Boost contrast of uploaded drawing for projector visibility ---
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const d = imgData.data;
+          for (let i = 0; i < d.length; i += 4) {
+            // Apply contrast curve: push darks darker, keep lights light
+            for (let ch = 0; ch < 3; ch++) {
+              let v = d[i + ch] / 255;
+              // S-curve contrast boost
+              v = v < 0.5
+                ? 0.5 * Math.pow(2 * v, 1.5)
+                : 1 - 0.5 * Math.pow(2 * (1 - v), 1.5);
+              // Bump saturation: pull away from gray
+              d[i + ch] = Math.max(0, Math.min(255, Math.round(v * 255)));
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+
           // --- Bottom half: green belly ---
           ctx.fillStyle = '#4A7A2E';
           ctx.fillRect(0, h, w, h);
 
           // --- Dividing line ---
-          ctx.strokeStyle = '#3A6A1E';
-          ctx.lineWidth = Math.max(2, h / 100);
+          ctx.strokeStyle = '#2a5a10';
+          ctx.lineWidth = Math.max(4, h / 60);
           ctx.beginPath();
           ctx.moveTo(0, h);
           ctx.lineTo(w, h);
@@ -523,19 +559,21 @@
         const tex = createHeroTexture();
         shellMat = new THREE.MeshStandardMaterial({
           map: tex, color: 0xd4dd88,
-          emissive: 0x2a1f00, emissiveIntensity: 0.25,
-          roughness: 0.6, side: THREE.DoubleSide,
+          emissive: 0x3a2a00, emissiveIntensity: 0.35,
+          roughness: 0.55, side: THREE.DoubleSide,
         });
       } else if (st.imageData) {
         const tex = await loadShellTexture(st.imageData);
         shellMat = new THREE.MeshStandardMaterial({
           map: tex || undefined,
           color: tex ? 0xffffff : 0xA8D5A2,
-          roughness: 0.65, side: THREE.DoubleSide,
+          emissive: tex ? 0x222222 : 0x000000,
+          emissiveIntensity: tex ? 0.3 : 0,
+          roughness: 0.55, side: THREE.DoubleSide,
         });
       } else {
         shellMat = new THREE.MeshStandardMaterial({
-          color: 0xA8D5A2, roughness: 0.65, side: THREE.DoubleSide,
+          color: 0xA8D5A2, roughness: 0.55, side: THREE.DoubleSide,
         });
       }
 
@@ -737,7 +775,7 @@
     const pGeo = new THREE.BufferGeometry();
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({
-      color: 0xccddff, size: 0.08, transparent: true, opacity: 0.45, sizeAttenuation: true,
+      color: 0xddeeff, size: 0.10, transparent: true, opacity: 0.6, sizeAttenuation: true,
     })));
 
     function updateParticles(dt) {
@@ -849,9 +887,9 @@
     function createCoral(cx, cz, height, color, branchCount) {
       const group = new THREE.Group();
       group.position.set(cx, TANK.yMin, cz);
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
-      const lighterColor = new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.25);
-      const tipMat = new THREE.MeshStandardMaterial({ color: lighterColor, roughness: 0.8 });
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.8, emissive: color, emissiveIntensity: 0.1 });
+      const lighterColor = new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.3);
+      const tipMat = new THREE.MeshStandardMaterial({ color: lighterColor, roughness: 0.75, emissive: lighterColor, emissiveIntensity: 0.08 });
 
       // Thick base mound
       const baseGeo = new THREE.SphereGeometry(0.25, 8, 6);
@@ -1047,9 +1085,9 @@
 
     for (let i = 0; i < FISH_COUNT; i++) {
       const pal = fishPalette[i % fishPalette.length];
-      const bodyMat = new THREE.MeshStandardMaterial({ color: pal.body, roughness: 0.4, metalness: 0.1 });
-      const accentMat = new THREE.MeshStandardMaterial({ color: pal.accent, roughness: 0.4, side: THREE.DoubleSide });
-      const finMat = new THREE.MeshStandardMaterial({ color: pal.accent, roughness: 0.5, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      const bodyMat = new THREE.MeshStandardMaterial({ color: pal.body, roughness: 0.35, metalness: 0.15, emissive: pal.body, emissiveIntensity: 0.1 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: pal.accent, roughness: 0.35, side: THREE.DoubleSide, emissive: pal.accent, emissiveIntensity: 0.08 });
+      const finMat = new THREE.MeshStandardMaterial({ color: pal.accent, roughness: 0.45, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
 
       const group = new THREE.Group();
       const sz = 0.5 + Math.random() * 0.3; // vary size
