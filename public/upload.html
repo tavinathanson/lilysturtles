@@ -58,9 +58,21 @@
       border-color: #14a3c7;
     }
     input[type="file"] {
-      padding: 12px;
+      display: none;
+    }
+    .photo-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: 2px dashed #14a3c7;
+      border-radius: 12px;
+      font-size: 16px;
+      margin-bottom: 18px;
+      background: #f0f9fc;
+      color: #0d7fa5;
+      text-align: center;
       cursor: pointer;
-      background: #f8f9fa;
+      font-weight: 600;
     }
     button {
       width: 100%;
@@ -155,6 +167,7 @@
       <input type="text" id="name" name="name" required maxlength="30" placeholder="What's your turtle called?">
 
       <label for="photo">Turtle Photo</label>
+      <label for="photo" class="photo-btn" id="photoLabel">📷 Take Photo</label>
       <input type="file" id="photo" name="photo" accept="image/*" capture="environment" required>
 
       <label for="eventCode">Turtle Code</label>
@@ -188,6 +201,11 @@
 
     let turtleId = null;
     let savedEventCode = '';
+
+    document.getElementById('photo').addEventListener('change', function() {
+      const label = document.getElementById('photoLabel');
+      label.textContent = this.files[0] ? '✅ ' + this.files[0].name : '📷 Take Photo';
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
