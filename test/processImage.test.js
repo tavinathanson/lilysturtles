@@ -218,6 +218,22 @@ describe('processImage — partial/problem photos', () => {
     assert.ok(result.hint !== null, 'should warn about the issue');
   });
 
+  it('detects shell when circle border is barely cut off at image edge', async () => {
+    // Circle extends slightly past the bottom edge — border is missing at the very bottom
+    // but the image edge itself acts as a barrier, keeping the fill enclosed
+    const buf = await makeImage(`
+      <circle cx="200" cy="260" r="150" fill="red" stroke="black" stroke-width="14"/>
+      <rect x="160" y="200" width="80" height="60" fill="blue"/>
+    `, 400, 400);
+    const result = await processImage(buf);
+    assert.strictEqual(result.shellDetected, true, 'should detect shell even with border slightly cut off');
+    assert.strictEqual(result.hint, null);
+
+    const { data, width, height } = await decodeResult(result);
+    const cx = Math.floor(width / 2), cy = Math.floor(height / 2);
+    assert.ok(isVisible(data, width, cx, cy), 'center should be visible');
+  });
+
   it('no hint for a regular dark drawing (not a coloring page)', async () => {
     // A drawing with some dark lines — open shapes, not enclosing the center
     const buf = await makeImage(`
