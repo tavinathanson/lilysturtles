@@ -129,6 +129,7 @@
     const turtleMap = new Map();
     let aquariumRunning = false;
     let pollTimer = null;
+    const processedCommands = new Set();
     let titleOpacity = 0;
     let startTime = 0;
 
@@ -1342,17 +1343,26 @@
         const serverIds = new Set();
 
         for (const st of data.turtles) {
-          serverIds.add(st.id);
-          if (turtleMap.has(st.id)) {
-            const e = turtleMap.get(st.id);
-            e.state.name = st.name;
-            e.labelDiv.textContent = st.name || '';
-            // Handle commands
-            if (st.command) handleCommand(e, st.command);
-          } else {
-            const e = await createTurtle3D(st);
-            turtleMap.set(st.id, e);
-            if (st.command) handleCommand(e, st.command);
+          try {
+            serverIds.add(st.id);
+            let e;
+            if (turtleMap.has(st.id)) {
+              e = turtleMap.get(st.id);
+              e.state.name = st.name;
+              e.labelDiv.textContent = st.name || '';
+            } else {
+              e = await createTurtle3D(st);
+              turtleMap.set(st.id, e);
+            }
+            // Handle commands (deduplicate with SSE delivery)
+            if (st.command) {
+              if (!st.commandId || !processedCommands.has(st.commandId)) {
+                if (st.commandId) processedCommands.add(st.commandId);
+                handleCommand(e, st.command);
+              }
+            }
+          } catch (err) {
+            console.error('Error processing turtle:', st.id, err);
           }
         }
 
@@ -1370,9 +1380,30 @@
       } catch {}
     }
 
+    // --- SSE for instant command delivery ---
+    function connectSSE() {
+      const es = new EventSource(`/api/events?eventCode=${encodeURIComponent(eventCode)}`);
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (processedCommands.has(data.commandId)) return;
+          processedCommands.add(data.commandId);
+          // Prevent unbounded growth
+          if (processedCommands.size > 200) {
+            const arr = Array.from(processedCommands);
+            for (let i = 0; i < 100; i++) processedCommands.delete(arr[i]);
+          }
+          const entry = turtleMap.get(data.turtleId);
+          if (entry) handleCommand(entry, data.command);
+        } catch {}
+      };
+      return es;
+    }
+
     function startPolling() {
       pollTurtles();
       pollTimer = setInterval(pollTurtles, 3000);
+      connectSSE();
     }
 
     // --- Animation loop ---

@@ -18,7 +18,9 @@ const rateLimitMap = new Map();
 let heroTurtle = null;
 const turtles = [];
 let nextId = 1;
-const commandQueue = new Map(); // turtleId -> { action, timestamp }
+const commandQueue = new Map(); // turtleId -> { action, timestamp, commandId }
+let nextCommandId = 1;
+const sseClients = new Set();
 
 // Multer config: memory storage, 5MB limit, images only
 const upload = multer({
@@ -186,6 +188,29 @@ ${files.length ? `<div class="grid">${cards}</div>` : '<div class="empty">No dra
 </body></html>`);
 });
 
+// SSE endpoint for instant command delivery to live clients
+app.get('/api/events', (req, res) => {
+  const { eventCode } = req.query;
+  if (eventCode !== EVENT_CODE) {
+    return res.status(403).json({ error: 'Wrong event code.' });
+  }
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+  res.write('\n');
+  sseClients.add(res);
+  req.on('close', () => sseClients.delete(res));
+});
+
+// SSE heartbeat to keep connections alive
+setInterval(() => {
+  for (const client of sseClients) {
+    client.write(': heartbeat\n\n');
+  }
+}, 20000);
+
 app.post('/api/turtle/:id/command', (req, res) => {
   const { action, eventCode } = req.body;
   if (eventCode !== EVENT_CODE) {
@@ -200,7 +225,15 @@ app.post('/api/turtle/:id/command', (req, res) => {
   if (!exists) {
     return res.status(404).json({ error: 'Turtle not found.' });
   }
-  commandQueue.set(id, { action, timestamp: Date.now() });
+  const commandId = `cmd_${nextCommandId++}`;
+  commandQueue.set(id, { action, timestamp: Date.now(), commandId });
+
+  // Push to all SSE clients immediately
+  const sseData = JSON.stringify({ turtleId: id, command: action, commandId });
+  for (const client of sseClients) {
+    client.write(`data: ${sseData}\n\n`);
+  }
+
   res.json({ success: true });
 });
 
@@ -309,7 +342,9 @@ app.get('/api/turtles', (req, res) => {
     }
     // Attach pending command (one-shot: deliver then clear)
     if (commandQueue.has(t.id)) {
-      entry.command = commandQueue.get(t.id).action;
+      const cmd = commandQueue.get(t.id);
+      entry.command = cmd.action;
+      entry.commandId = cmd.commandId;
       commandQueue.delete(t.id);
     }
     return entry;
