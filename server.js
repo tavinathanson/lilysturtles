@@ -121,16 +121,112 @@ async function processImage(buffer) {
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  // Remove near-white backgrounds
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
-      data[i + 3] = 0;
+  const { width, height } = info;
+  const totalPixels = width * height;
+
+  // --- Try to detect coloring page shell boundary via flood fill ---
+  // If the photo is of the coloring page, the thick black shell border
+  // forms a continuous ring. Flood fill from center stops at the ring,
+  // giving us exactly the shell interior.
+
+  // Build dark-pixel mask (the flood fill barrier)
+  const dark = new Uint8Array(totalPixels);
+  for (let i = 0; i < totalPixels; i++) {
+    const pi = i * 4;
+    if (data[pi] < 60 && data[pi + 1] < 60 && data[pi + 2] < 60) {
+      dark[i] = 1;
+    }
+  }
+
+  // Find a non-dark starting pixel near image center
+  const cx = Math.floor(width / 2);
+  const cy = Math.floor(height / 2);
+  const maxSearch = Math.floor(Math.min(width, height) * 0.15);
+  let startIdx = -1;
+  for (let r = 0; r <= maxSearch && startIdx < 0; r++) {
+    for (let dy = -r; dy <= r && startIdx < 0; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (r > 0 && Math.abs(dx) < r && Math.abs(dy) < r) continue;
+        const sx = cx + dx, sy = cy + dy;
+        if (sx < 0 || sx >= width || sy < 0 || sy >= height) continue;
+        if (!dark[sy * width + sx]) {
+          startIdx = sy * width + sx;
+          break;
+        }
+      }
+    }
+  }
+
+  let useShellMask = false;
+  const mask = new Uint8Array(totalPixels);
+
+  if (startIdx >= 0) {
+    const visited = new Uint8Array(totalPixels);
+    visited[startIdx] = 1;
+    mask[startIdx] = 1;
+    const stack = [startIdx];
+    let fillCount = 0;
+    let touchesEdge = false;
+
+    while (stack.length > 0) {
+      const idx = stack.pop();
+      fillCount++;
+      const x = idx % width;
+      const y = (idx - x) / width;
+
+      if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+        touchesEdge = true;
+        break;
+      }
+
+      // Bail if fill is huge (no enclosing border)
+      if (fillCount > totalPixels * 0.7) {
+        touchesEdge = true;
+        break;
+      }
+
+      // Expand to 4-connected neighbors (with proper bounds checking)
+      const nb = [];
+      if (x > 1)          nb.push(idx - 1);
+      if (x < width - 2)  nb.push(idx + 1);
+      if (y > 1)          nb.push(idx - width);
+      if (y < height - 2) nb.push(idx + width);
+      for (const ni of nb) {
+        if (visited[ni]) continue;
+        visited[ni] = 1;
+        if (dark[ni]) continue; // hit the border — stop
+        mask[ni] = 1;
+        stack.push(ni);
+      }
+    }
+
+    const fillRatio = fillCount / totalPixels;
+    useShellMask = !touchesEdge && fillRatio > 0.03 && fillRatio < 0.7;
+  }
+
+  if (useShellMask) {
+    // Coloring page detected: keep only pixels inside the shell
+    for (let i = 0; i < totalPixels; i++) {
+      const pi = i * 4;
+      if (!mask[i]) {
+        data[pi + 3] = 0;
+      } else if (data[pi] > 230 && data[pi + 1] > 230 && data[pi + 2] > 230) {
+        // Remove white (un-colored areas) inside shell
+        data[pi + 3] = 0;
+      }
+    }
+  } else {
+    // Regular upload: just remove near-white backgrounds
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
+        data[i + 3] = 0;
+      }
     }
   }
 
   // Re-encode as PNG
   const pngBuffer = await sharp(data, {
-    raw: { width: info.width, height: info.height, channels: 4 }
+    raw: { width, height, channels: 4 }
   }).png().toBuffer();
 
   return `data:image/png;base64,${pngBuffer.toString('base64')}`;
@@ -152,6 +248,14 @@ app.get('/upload', (req, res) => {
 
 app.get('/flyer', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'flyer.html'));
+});
+
+app.get('/coloring', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'coloring.html'));
+});
+
+app.get('/reset', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'reset.html'));
 });
 
 app.use(express.json());
@@ -217,6 +321,21 @@ app.post('/api/turtle/:id/command', (req, res) => {
     return res.status(404).json({ error: 'Turtle not found.' });
   }
   commandQueue.set(id, { action, timestamp: Date.now() });
+  res.json({ success: true });
+});
+
+app.post('/api/reset', (req, res) => {
+  const { eventCode } = req.body;
+  if (eventCode !== EVENT_CODE) {
+    const ip = req.ip;
+    if (!checkRateLimit(ip)) {
+      return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    }
+    return res.status(403).json({ error: 'Wrong event code.' });
+  }
+  turtles.length = 0;
+  nextId = 1;
+  commandQueue.clear();
   res.json({ success: true });
 });
 

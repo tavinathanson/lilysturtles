@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Reset — Lily's Turtles</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #6e0a0a 0%, #a50d0d 50%, #c71414 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 32px 28px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+    h1 {
+      text-align: center;
+      color: #6e0a0a;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      font-size: 16px;
+      margin-bottom: 18px;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #c71414;
+    }
+    button {
+      width: 100%;
+      padding: 16px;
+      background: #a50d0d;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 52px;
+      transition: background 0.2s;
+    }
+    button:active { background: #8a0a0a; }
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+    .message {
+      text-align: center;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 16px;
+      font-size: 15px;
+      display: none;
+    }
+    .message.error {
+      display: block;
+      background: #ffe0e0;
+      color: #c00;
+    }
+    .message.success {
+      display: block;
+      background: #e0ffe0;
+      color: #060;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Reset Aquarium</h1>
+    <p class="subtitle">This will remove all turtles from the aquarium.</p>
+    <form id="resetForm">
+      <label for="eventCode">Event Code</label>
+      <input type="text" id="eventCode" name="eventCode" required inputmode="numeric" pattern="\d*" placeholder="4-digit code">
+
+      <button type="submit" id="submitBtn">Reset All Turtles</button>
+    </form>
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('resetForm');
+    const msg = document.getElementById('message');
+    const btn = document.getElementById('submitBtn');
+
+    const stored = localStorage.getItem('turtleCode');
+    if (stored) document.getElementById('eventCode').value = stored;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.className = 'message';
+      msg.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Resetting...';
+
+      const eventCode = document.getElementById('eventCode').value;
+
+      try {
+        const res = await fetch('/api/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventCode }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          msg.className = 'message error';
+          msg.textContent = data.error || 'Reset failed.';
+          msg.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Reset All Turtles';
+          return;
+        }
+
+        msg.className = 'message success';
+        msg.textContent = 'Aquarium has been reset! All turtles removed.';
+        msg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Reset All Turtles';
+      } catch (err) {
+        msg.className = 'message error';
+        msg.textContent = 'Network error. Please try again.';
+        msg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Reset All Turtles';
+      }
+    });
+  </script>
+</body>
+</html>

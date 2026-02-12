@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lily's Turtles - Coloring Page</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .no-print {
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .no-print h1 { color: #0a4d6e; font-size: 28px; margin-bottom: 8px; }
+  .no-print p { color: #555; font-size: 16px; margin-bottom: 16px; max-width: 420px; }
+  .no-print button {
+    background: #0d7fa5;
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .no-print button:hover { background: #0a6a8a; }
+
+  .page {
+    width: 8.5in;
+    height: 11in;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35in 0.35in;
+    gap: 12px;
+  }
+
+  .page-title {
+    font-size: 42px;
+    font-weight: 900;
+    color: #222;
+    text-align: center;
+  }
+
+  .turtle-svg {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .name-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .name-line span {
+    font-size: 20px;
+    color: #999;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .name-line .line {
+    display: inline-block;
+    width: 260px;
+    border-bottom: 2px solid #ccc;
+  }
+
+  @media print {
+    @page { size: letter; margin: 0; }
+    body { background: white; padding: 0; }
+    .no-print { display: none !important; }
+    .page {
+      box-shadow: none;
+      width: 100%;
+      height: 100vh;
+      padding: 0.3in 0.35in;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <h1>Turtle Coloring Page</h1>
+  <p>Print this page, color inside the turtle's shell, then take a photo and upload it!</p>
+  <button onclick="window.print()">Print Coloring Page</button>
+</div>
+
+<div class="page">
+  <div class="page-title">Color My Shell!</div>
+
+  <svg class="turtle-svg" viewBox="0 0 680 580" xmlns="http://www.w3.org/2000/svg">
+    <!-- === Behind-shell elements (drawn first, shell covers their bases) === -->
+
+    <!-- Head (big loggerhead, positioned well above shell so face is visible) -->
+    <ellipse cx="340" cy="58" rx="50" ry="44" fill="black"/>
+
+    <!-- Eyes (wide-set, big — matching 3D loggerhead) -->
+    <circle cx="314" cy="48" r="13" fill="white"/>
+    <circle cx="366" cy="48" r="13" fill="white"/>
+    <!-- Pupils (offset toward center for cute look) -->
+    <circle cx="317" cy="46" r="7" fill="#111"/>
+    <circle cx="369" cy="46" r="7" fill="#111"/>
+    <!-- Eye shine -->
+    <circle cx="320" cy="43" r="3" fill="white"/>
+    <circle cx="372" cy="43" r="3" fill="white"/>
+    <!-- Smile (well above shell border) -->
+    <path d="M324 72 Q340 83 356 72" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+    <!-- Front flippers — long sea-turtle paddles, angled slightly forward -->
+    <ellipse cx="155" cy="218" rx="110" ry="28" fill="black" transform="rotate(-15 155 218)"/>
+    <ellipse cx="525" cy="218" rx="110" ry="28" fill="black" transform="rotate(15 525 218)"/>
+
+    <!-- Back flippers — paddles angled downward -->
+    <ellipse cx="260" cy="500" rx="75" ry="20" fill="black" transform="rotate(45 260 500)"/>
+    <ellipse cx="420" cy="500" rx="75" ry="20" fill="black" transform="rotate(-45 420 500)"/>
+
+    <!-- === Shell (drawn on top — the coloring area!) === -->
+    <!-- Round circle for maximum coloring space -->
+    <ellipse cx="340" cy="300" rx="195" ry="195" fill="white" stroke="#000000" stroke-width="14"/>
+  </svg>
+
+  <div class="name-line">
+    <span>Turtle's name:</span>
+    <span class="line">&nbsp;</span>
+  </div>
+</div>
+
+</body>
+</html>
