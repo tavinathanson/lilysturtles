@@ -158,7 +158,7 @@
       <input type="file" id="photo" name="photo" accept="image/*" capture="environment" required>
 
       <label for="eventCode">Turtle Code</label>
-      <input type="text" id="eventCode" name="eventCode" required inputmode="numeric" pattern="\d*" placeholder="4-digit code">
+      <input type="text" id="eventCode" name="eventCode" required inputmode="numeric" pattern="\d*" placeholder="4-digit code" autocomplete="off">
 
       <button type="submit" id="submitBtn">Add My Turtle!</button>
     </form>
@@ -188,10 +188,6 @@
 
     let turtleId = null;
     let savedEventCode = '';
-
-    // Pre-fill event code from localStorage
-    const stored = localStorage.getItem('turtleCode');
-    if (stored) document.getElementById('eventCode').value = stored;
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
