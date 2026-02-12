@@ -162,46 +162,197 @@
     const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const pupilMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
 
-    // --- Hero shell texture (scute pattern top, green belly bottom) ---
+    // --- Cake geometry & materials ---
+    const cakeBottomGeo = new THREE.CylinderGeometry(0.38, 0.40, 0.22, 20);
+    const cakeTopGeo = new THREE.CylinderGeometry(0.28, 0.30, 0.18, 20);
+    const frostingGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.04, 20);
+    const candleGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.22, 6);
+    const flameGeo = new THREE.ConeGeometry(0.04, 0.1, 6);
+    const flameGlowGeo = new THREE.SphereGeometry(0.05, 6, 4);
+
+    const cakeMat = new THREE.MeshStandardMaterial({ color: 0xF5D6C0, roughness: 0.9 }); // vanilla sponge
+    const frostingMat = new THREE.MeshStandardMaterial({ color: 0xFFF5F5, roughness: 0.6 }); // white frosting
+    const frostingPinkMat = new THREE.MeshStandardMaterial({ color: 0xF8B4C8, roughness: 0.6 }); // pink frosting trim
+    const candleMat = new THREE.MeshStandardMaterial({ color: 0x7EC8E3, roughness: 0.5 }); // light blue candles
+    const flameMat = new THREE.MeshStandardMaterial({
+      color: 0xFFAA22, emissive: 0xFF6600, emissiveIntensity: 1.2,
+      transparent: true, opacity: 0.95,
+    });
+    const flameInnerMat = new THREE.MeshStandardMaterial({
+      color: 0xFFEE88, emissive: 0xFFDD44, emissiveIntensity: 1.5,
+      transparent: true, opacity: 0.9,
+    });
+
+    function createBirthdayCake() {
+      const cake = new THREE.Group();
+      cake.name = 'cake';
+
+      // Bottom tier
+      const bottom = new THREE.Mesh(cakeBottomGeo, cakeMat);
+      bottom.position.y = 0.11;
+      cake.add(bottom);
+
+      // Pink frosting ring on bottom tier
+      const trim = new THREE.Mesh(frostingGeo, frostingPinkMat);
+      trim.scale.set(1.3, 1, 1.3);
+      trim.position.y = 0.22;
+      cake.add(trim);
+
+      // Top tier
+      const top = new THREE.Mesh(cakeTopGeo, cakeMat);
+      top.position.y = 0.32;
+      cake.add(top);
+
+      // White frosting on top
+      const frostTop = new THREE.Mesh(frostingGeo, frostingMat);
+      frostTop.position.y = 0.42;
+      cake.add(frostTop);
+
+      // 3 candles with flames
+      const candlePositions = [
+        { x: -0.1, z: 0 },
+        { x:  0.1, z: -0.08 },
+        { x:  0.05, z: 0.1 },
+      ];
+      const flames = [];
+
+      for (let i = 0; i < candlePositions.length; i++) {
+        const cp = candlePositions[i];
+
+        // Candle stick
+        const candle = new THREE.Mesh(candleGeo, candleMat);
+        candle.position.set(cp.x, 0.53, cp.z);
+        cake.add(candle);
+
+        // Outer flame (orange)
+        const flame = new THREE.Mesh(flameGeo, flameMat);
+        flame.position.set(cp.x, 0.69, cp.z);
+        flame.name = 'flame_' + i;
+        cake.add(flame);
+
+        // Inner flame core (bright yellow)
+        const inner = new THREE.Mesh(flameGeo, flameInnerMat);
+        inner.scale.set(0.5, 0.6, 0.5);
+        inner.position.set(cp.x, 0.68, cp.z);
+        inner.name = 'flame_inner_' + i;
+        cake.add(inner);
+
+        flames.push({ outer: flame, inner: inner, phase: i * 2.1 });
+      }
+
+      // Add a warm point light from the candles
+      const candleLight = new THREE.PointLight(0xFF9933, 0.8, 5);
+      candleLight.position.set(0, 0.75, 0);
+      cake.add(candleLight);
+
+      // Scale up and position on top of shell dome
+      cake.scale.set(2, 2, 2);
+      cake.position.set(0, 0.42, 0);
+
+      return { cakeGroup: cake, flames };
+    }
+
+    // --- Hero shell texture (realistic sea turtle scute pattern) ---
     function createHeroTexture() {
+      const W = 512, H = 1024; // top half = shell back, bottom half = belly
       const c = document.createElement('canvas');
-      c.width = 256; c.height = 512; // top half = shell back, bottom half = belly
+      c.width = W; c.height = H;
       const x = c.getContext('2d');
+      const MID = H / 2; // equator line
 
-      // --- Top half: golden-green scute pattern (visible back) ---
-      x.fillStyle = '#B8CC58';
-      x.fillRect(0, 0, 256, 256);
+      // --- Top half: hexagonal honeycomb shell pattern ---
+      // Dark grout base
+      x.fillStyle = '#2E4010';
+      x.fillRect(0, 0, W, MID);
 
-      x.strokeStyle = 'rgba(139, 154, 70, 0.6)';
-      x.lineWidth = 2;
-      for (let i = 0; i < 5; i++) {
+      // Hex tile colors — alternating warm greens/golds
+      const hexColors = [
+        ['#C8D462', '#A4B44A', '#869832'],
+        ['#B0C050', '#92A43C', '#78882C'],
+        ['#D4DC6E', '#B8C254', '#9AA840'],
+        ['#BCC858', '#9CAC40', '#809430'],
+      ];
+
+      // Draw a single filled hexagon
+      function hex(cx, cy, r, colorIdx) {
+        const col = hexColors[colorIdx % hexColors.length];
         x.beginPath();
-        x.ellipse(128, 25 + i * 50, 30, 22, 0, 0, Math.PI * 2);
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.PI / 3 * i - Math.PI / 6;
+          const px = cx + r * Math.cos(angle);
+          const py = cy + r * Math.sin(angle);
+          i === 0 ? x.moveTo(px, py) : x.lineTo(px, py);
+        }
+        x.closePath();
+
+        // Gradient fill: bright center, darker edges
+        const gf = x.createRadialGradient(cx - r * 0.1, cy - r * 0.1, 0, cx, cy, r);
+        gf.addColorStop(0, col[0]);
+        gf.addColorStop(0.7, col[1]);
+        gf.addColorStop(1, col[2]);
+        x.fillStyle = gf;
+        x.fill();
+
+        // Dark groove border
+        x.strokeStyle = '#263A0C';
+        x.lineWidth = 3.5;
+        x.stroke();
+
+        // Inner growth ring
+        x.beginPath();
+        const ri = r * 0.55;
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.PI / 3 * i - Math.PI / 6;
+          const px = cx + ri * Math.cos(angle);
+          const py = cy + ri * Math.sin(angle);
+          i === 0 ? x.moveTo(px, py) : x.lineTo(px, py);
+        }
+        x.closePath();
+        x.strokeStyle = 'rgba(50, 70, 15, 0.35)';
+        x.lineWidth = 1.5;
         x.stroke();
       }
-      for (const side of [-1, 1]) {
-        for (let i = 0; i < 4; i++) {
-          x.beginPath();
-          x.ellipse(128 + side * 52, 48 + i * 52, 22, 20, side * 0.2, 0, Math.PI * 2);
-          x.stroke();
+
+      // Tile the top half with hexagons
+      const R = 42; // hex radius
+      const hexW = R * Math.sqrt(3);
+      const hexH = R * 2;
+      const cols = Math.ceil(W / hexW) + 2;
+      const rows = Math.ceil(MID / (hexH * 0.75)) + 2;
+
+      for (let row = -1; row < rows; row++) {
+        for (let col = -1; col < cols; col++) {
+          const cx = col * hexW + (row % 2 ? hexW / 2 : 0);
+          const cy = row * hexH * 0.75;
+          if (cy > MID + R) continue;
+          const ci = (row * 7 + col * 3) % hexColors.length;
+          // Slight random variation in size for organic feel
+          const rv = R * (0.96 + ((row * 13 + col * 7) % 11) / 11 * 0.08);
+          hex(cx, cy, rv, Math.abs(ci));
         }
       }
-      const g = x.createRadialGradient(128, 128, 0, 128, 128, 120);
-      g.addColorStop(0, 'rgba(201,168,76,0.25)');
-      g.addColorStop(1, 'rgba(201,168,76,0)');
-      x.fillStyle = g;
-      x.fillRect(0, 0, 256, 256);
 
-      // --- Bottom half: green belly ---
-      x.fillStyle = '#4A7A2E';
-      x.fillRect(0, 256, 256, 256);
+      // Golden shimmer highlight
+      const glow = x.createRadialGradient(W/2, MID * 0.4, 0, W/2, MID * 0.4, W * 0.4);
+      glow.addColorStop(0, 'rgba(220, 200, 100, 0.15)');
+      glow.addColorStop(1, 'rgba(220, 200, 100, 0)');
+      x.fillStyle = glow;
+      x.fillRect(0, 0, W, MID);
+
+      // --- Bottom half: green/yellow belly ---
+      const bellyGrad = x.createLinearGradient(0, MID, 0, H);
+      bellyGrad.addColorStop(0, '#5A7A2E');
+      bellyGrad.addColorStop(0.3, '#6A8A35');
+      bellyGrad.addColorStop(1, '#4A6A25');
+      x.fillStyle = bellyGrad;
+      x.fillRect(0, MID, W, MID);
 
       // --- Dividing line at equator ---
-      x.strokeStyle = '#3A6A1E';
-      x.lineWidth = 3;
+      x.strokeStyle = '#3A5A18';
+      x.lineWidth = 4;
       x.beginPath();
-      x.moveTo(0, 256);
-      x.lineTo(256, 256);
+      x.moveTo(0, MID);
+      x.lineTo(W, MID);
       x.stroke();
 
       const tex = new THREE.CanvasTexture(c);
@@ -219,19 +370,27 @@
       shell.scale.set(1.2, 0.48, 1.4);
       group.add(shell);
 
-      // Head
+      // Big loggerhead head
       const head = new THREE.Mesh(headGeo, skinMat);
-      head.scale.set(0.24, 0.20, 0.32);
-      head.position.set(0, 0.02, -1.32);
+      head.scale.set(0.38, 0.30, 0.45);
+      head.position.set(0, 0.04, -1.25);
       group.add(head);
 
-      // Eyes
+      // Slightly darker top of head
+      const headTop = new THREE.Mesh(headGeo, darkSkinMat);
+      headTop.scale.set(0.35, 0.22, 0.40);
+      headTop.position.set(0, 0.12, -1.25);
+      group.add(headTop);
+
+      // Eyes (bigger, wider apart for loggerhead)
       for (const side of [-1, 1]) {
         const eye = new THREE.Mesh(eyeGeo, eyeWhiteMat);
-        eye.position.set(side * 0.12, 0.09, -1.5);
+        eye.position.set(side * 0.22, 0.10, -1.52);
+        eye.scale.set(1.3, 1.3, 1.3);
         group.add(eye);
         const pupil = new THREE.Mesh(pupilGeo, pupilMat);
-        pupil.position.set(side * 0.13, 0.09, -1.53);
+        pupil.position.set(side * 0.23, 0.10, -1.56);
+        pupil.scale.set(1.3, 1.3, 1.3);
         group.add(pupil);
       }
 
@@ -359,6 +518,14 @@
       const group = createTurtleGroup(shellMat);
       group.scale.set(scale, scale, scale);
 
+      // Birthday cake on the hero turtle
+      let flames = null;
+      if (isHero) {
+        const cakeData = createBirthdayCake();
+        group.add(cakeData.cakeGroup);
+        flames = cakeData.flames;
+      }
+
       // Initial position & heading
       const dir = st.direction || 1;
       // direction 1 = moving right (+X), heading = -π/2
@@ -411,7 +578,7 @@
         namePhase: st.name ? 'fadein' : 'done',
       };
 
-      return { group, state, labelDiv, shellMat };
+      return { group, state, labelDiv, shellMat, flames };
     }
 
     // --- Movement ---
@@ -505,6 +672,21 @@
         }
       }
 
+      // --- Flame animation (hero cake) ---
+      if (entry.flames) {
+        for (const f of entry.flames) {
+          const flicker = time * 8 + f.phase;
+          // Outer flame: scale wobble + slight sway
+          f.outer.scale.y = 0.85 + Math.sin(flicker) * 0.2 + Math.sin(flicker * 2.3) * 0.1;
+          f.outer.scale.x = 0.9 + Math.sin(flicker * 1.7) * 0.15;
+          f.outer.scale.z = 0.9 + Math.cos(flicker * 1.3) * 0.15;
+          f.outer.position.x = f.inner.position.x + Math.sin(flicker * 1.1) * 0.008;
+          // Inner flame: faster flicker
+          f.inner.scale.y = 0.5 + Math.sin(flicker * 1.5) * 0.15;
+          f.inner.scale.x = 0.4 + Math.sin(flicker * 2.1) * 0.1;
+        }
+      }
+
       // --- Name fade ---
       if (s.namePhase === 'fadein') {
         s.nameOpacity = Math.min(1, s.nameOpacity + dt);
@@ -578,7 +760,7 @@
       titleLabel.style.opacity = String(titleOpacity);
       const p = projectToScreen(hero.group.position);
       titleLabel.style.left = p.x + 'px';
-      titleLabel.style.top = Math.max(40, p.y - 65) + 'px';
+      titleLabel.style.top = Math.max(40, p.y - 160) + 'px';
       titleLabel.style.fontSize = Math.min(48, innerWidth / 10) + 'px';
     }
 
