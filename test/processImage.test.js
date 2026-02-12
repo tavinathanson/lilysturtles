@@ -1,7 +1,14 @@
-const { describe, it } = require('node:test');
+const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 const sharp = require('sharp');
+const fs = require('node:fs');
+const path = require('node:path');
 const processImage = require('../lib/processImage');
+
+// Warm up OpenCV WASM once before all tests
+before(async () => {
+  await processImage.initCV();
+});
 
 // --- Helper: create a test image from SVG shapes ---
 async function makeImage(svgContent, width = 400, height = 400) {
@@ -187,7 +194,7 @@ describe('processImage — regular photos (no coloring page)', () => {
 
 describe('processImage — partial/problem photos', () => {
 
-  it('gives a hint when the circle is cut off (lots of dark ink but no enclosure)', async () => {
+  it('rejects when the circle is significantly cut off', async () => {
     // Simulate a coloring page photo where the right side is cropped:
     // partial circle arc + head + flippers = lots of dark ink, but circle is broken
     const buf = await makeImage(`
@@ -201,26 +208,22 @@ describe('processImage — partial/problem photos', () => {
     `);
     const result = await processImage(buf);
     assert.strictEqual(result.shellDetected, false);
-    assert.ok(result.hint !== null, 'should give a hint about partial circle');
-    assert.ok(result.hint.includes('circle'), `hint should mention circle: "${result.hint}"`);
   });
 
   it('handles a gap in the border (kid colored over it)', async () => {
-    // Circle with a white rectangle breaking the border
+    // Circle with a white rectangle breaking the border — HoughCircles
+    // detects the circle geometrically despite the gap
     const buf = await makeImage(`
       <circle cx="200" cy="200" r="120" fill="yellow" stroke="black" stroke-width="14"/>
       <rect x="310" y="185" width="20" height="30" fill="white"/>
     `);
     const result = await processImage(buf);
-    // The fill leaks through the gap — won't detect as shell
-    assert.strictEqual(result.shellDetected, false);
-    // Should still get a hint since there's lots of black (circle border is >5%)
-    assert.ok(result.hint !== null, 'should warn about the issue');
+    assert.strictEqual(result.shellDetected, true);
   });
 
   it('detects shell when circle border is barely cut off at image edge', async () => {
     // Circle extends slightly past the bottom edge — border is missing at the very bottom
-    // but the image edge itself acts as a barrier, keeping the fill enclosed
+    // but HoughCircles still detects the circle from the visible arc
     const buf = await makeImage(`
       <circle cx="200" cy="260" r="150" fill="red" stroke="black" stroke-width="14"/>
       <rect x="160" y="200" width="80" height="60" fill="blue"/>
@@ -243,7 +246,6 @@ describe('processImage — partial/problem photos', () => {
     `);
     const result = await processImage(buf);
     assert.strictEqual(result.shellDetected, false);
-    // Not enough dark pixels to trigger coloring page hint
     assert.strictEqual(result.hint, null, 'small dark area should not trigger hint');
   });
 });
@@ -285,19 +287,33 @@ describe('processImage — edge cases', () => {
   });
 
   it('center of image is dark (kid colored the center black)', async () => {
-    // Circle with a black blob in the center — start search should find
-    // a non-dark pixel nearby
+    // Circle with a black blob in the center — HoughCircles doesn't care
+    // about interior content, it detects the circle edge
     const buf = await makeImage(`
       <circle cx="200" cy="200" r="120" fill="yellow" stroke="black" stroke-width="14"/>
       <circle cx="200" cy="200" r="30" fill="black"/>
     `);
     const result = await processImage(buf);
-    // Should still detect the shell (search spirals outward from center)
     assert.strictEqual(result.shellDetected, true);
 
     // After crop, yellow area should be visible (check slightly above center)
     const { data, width, height } = await decodeResult(result);
     const cx = Math.floor(width / 2), topQuarter = Math.floor(height / 4);
     assert.ok(isVisible(data, width, cx, topQuarter), 'yellow area above black blob visible');
+  });
+});
+
+describe('processImage — real photo regression tests', () => {
+
+  it('detects shell in photo with dark center (2_Hdd.png)', async () => {
+    const buf = fs.readFileSync(path.join(__dirname, '2_Hdd.png'));
+    const result = await processImage(buf);
+    assert.strictEqual(result.shellDetected, true);
+  });
+
+  it('detects shell in photo with QR code inside circle (3_Djd.png)', async () => {
+    const buf = fs.readFileSync(path.join(__dirname, '3_Djd.png'));
+    const result = await processImage(buf);
+    assert.strictEqual(result.shellDetected, true);
   });
 });
