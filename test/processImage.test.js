@@ -64,12 +64,10 @@ describe('processImage — coloring page detection', () => {
     assert.strictEqual(result.shellDetected, true);
     assert.strictEqual(result.hint, null);
 
-    // Image is cropped to circle bounding box — center should be visible (red),
-    // corner should be transparent (outside circle but inside bounding box)
+    // Image is cropped to circle bounding box — center should be visible (red)
     const { data, width, height } = await decodeResult(result);
     const cx = Math.floor(width / 2), cy = Math.floor(height / 2);
     assert.ok(isVisible(data, width, cx, cy), 'center should be visible');
-    assert.ok(!isVisible(data, width, 1, 1), 'corner should be transparent');
   });
 
   it('detects circle with multiple colors inside', async () => {
@@ -87,8 +85,6 @@ describe('processImage — coloring page detection', () => {
     const { data, width, height } = await decodeResult(result);
     const visible = countVisible(data);
     assert.ok(visible > 1000, `colored squares should produce many visible pixels, got ${visible}`);
-    // Corner of cropped image (outside circle) should be transparent
-    assert.ok(!isVisible(data, width, 1, 1), 'outside circle is transparent');
   });
 
   it('preserves dark colors inside the circle (dark blue, dark purple)', async () => {
@@ -106,18 +102,17 @@ describe('processImage — coloring page detection', () => {
     assert.ok(center.b > 80, 'blue channel should be high');
   });
 
-  it('handles an empty (uncolored) shell — everything inside becomes transparent', async () => {
+  it('handles an empty (uncolored) shell — white paper preserved for frontend', async () => {
     const buf = await makeImage(`
       <circle cx="200" cy="200" r="120" fill="white" stroke="black" stroke-width="14"/>
     `);
     const result = await processImage(buf);
     assert.strictEqual(result.shellDetected, true);
 
-    // The interior is all white, which gets removed → mostly transparent
+    // White interior is preserved (frontend handles contrast/display)
     const { data } = await decodeResult(result);
     const visible = countVisible(data);
-    // Some anti-aliased border pixels at the inner edge remain — that's fine
-    assert.ok(visible < 2000, `empty shell should be mostly transparent, got ${visible} visible pixels`);
+    assert.ok(visible > 0, 'white interior should be preserved');
   });
 
   it('works with the full turtle coloring page (head, flippers, circle)', async () => {
@@ -152,7 +147,7 @@ describe('processImage — coloring page detection', () => {
 
 describe('processImage — regular photos (no coloring page)', () => {
 
-  it('falls back to white removal when no circle is present', async () => {
+  it('preserves all pixels when no circle is present', async () => {
     const buf = await makeImage(`
       <rect x="100" y="100" width="200" height="200" fill="blue"/>
     `);
@@ -163,8 +158,8 @@ describe('processImage — regular photos (no coloring page)', () => {
     const { data, width } = await decodeResult(result);
     // Blue rect should be visible
     assert.ok(isVisible(data, width, 200, 200), 'blue rect visible');
-    // White corners should be transparent
-    assert.ok(!isVisible(data, width, 10, 10), 'white background removed');
+    // White corners are preserved (no paper removal)
+    assert.ok(isVisible(data, width, 10, 10), 'white background preserved');
   });
 
   it('handles an all-white image gracefully', async () => {
@@ -173,8 +168,9 @@ describe('processImage — regular photos (no coloring page)', () => {
     assert.strictEqual(result.shellDetected, false);
     assert.strictEqual(result.hint, null);
 
+    // All pixels preserved — frontend handles display
     const { data } = await decodeResult(result);
-    assert.strictEqual(countVisible(data), 0, 'all-white image → all transparent');
+    assert.ok(countVisible(data) > 0, 'all-white image preserved');
   });
 
   it('handles a colorful drawing with no black outlines', async () => {
