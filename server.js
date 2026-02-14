@@ -140,6 +140,10 @@ app.get('/reset', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'reset.html'));
 });
 
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 app.use(express.json());
 
 // Serve saved drawings as static files
@@ -250,6 +254,36 @@ app.post('/api/reset', (req, res) => {
   nextId = 1;
   commandQueue.clear();
   res.json({ success: true });
+});
+
+app.post('/api/delete-turtles', (req, res) => {
+  const { eventCode, ids } = req.body;
+  if (eventCode !== EVENT_CODE) {
+    const ip = req.ip;
+    if (!checkRateLimit(ip)) {
+      return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    }
+    return res.status(403).json({ error: 'Wrong event code.' });
+  }
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'No turtle IDs provided.' });
+  }
+  const toDelete = new Set(ids.map(String).filter(id => id !== 'hero'));
+  let deleted = 0;
+  for (let i = turtles.length - 1; i >= 0; i--) {
+    if (toDelete.has(turtles[i].id)) {
+      turtles.splice(i, 1);
+      deleted++;
+    }
+  }
+  // Broadcast delete event via SSE
+  if (deleted > 0) {
+    const sseData = JSON.stringify({ deleted: Array.from(toDelete) });
+    for (const client of sseClients) {
+      client.write(`event: delete\ndata: ${sseData}\n\n`);
+    }
+  }
+  res.json({ success: true, deleted });
 });
 
 app.post('/api/upload', upload.single('photo'), async (req, res) => {

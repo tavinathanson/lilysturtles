@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Admin — Lily's Turtles</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0a3d6e 0%, #0d6fa5 50%, #14a3c7 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 32px 28px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      margin-top: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #0a3d6e;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      font-size: 16px;
+      margin-bottom: 18px;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #14a3c7;
+    }
+    .btn {
+      padding: 14px 24px;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 48px;
+      transition: background 0.2s;
+    }
+    .btn:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: #0d6fa5;
+      width: 100%;
+    }
+    .btn-primary:active:not(:disabled) { background: #0a5a8a; }
+    .btn-danger {
+      background: #c03030;
+      width: 100%;
+    }
+    .btn-danger:active:not(:disabled) { background: #a02020; }
+    .message {
+      text-align: center;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 16px;
+      font-size: 15px;
+      display: none;
+    }
+    .message.error {
+      display: block;
+      background: #ffe0e0;
+      color: #c00;
+    }
+    .message.success {
+      display: block;
+      background: #e0ffe0;
+      color: #060;
+    }
+
+    /* Turtle grid */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .toolbar .count {
+      color: #666;
+      font-size: 14px;
+    }
+    .toggle-link {
+      background: none;
+      border: none;
+      color: #0d6fa5;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .turtle-card {
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      position: relative;
+      background: #fff;
+    }
+    .turtle-card:hover {
+      border-color: #0d6fa5;
+    }
+    .turtle-card.selected {
+      border-color: #c03030;
+      box-shadow: 0 0 0 2px rgba(192, 48, 48, 0.3);
+    }
+    .turtle-card.hero {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .turtle-card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: #f5f5f5;
+      padding: 4px;
+      display: block;
+    }
+    .turtle-card .name {
+      padding: 6px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .turtle-card .check {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid #bbb;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: white;
+    }
+    .turtle-card.selected .check {
+      background: #c03030;
+      border-color: #c03030;
+    }
+    .empty {
+      text-align: center;
+      color: #999;
+      padding: 40px 0;
+      font-size: 16px;
+    }
+    #turtleSection { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Turtle Admin</h1>
+    <p class="subtitle">Selectively remove turtles from the aquarium.</p>
+
+    <div id="loadSection">
+      <label for="eventCode">Event Code</label>
+      <input type="text" id="eventCode" inputmode="numeric" pattern="\d*" placeholder="4-digit code">
+      <button class="btn btn-primary" id="loadBtn">Load Turtles</button>
+    </div>
+
+    <div id="turtleSection">
+      <div class="toolbar">
+        <span class="count" id="countLabel"></span>
+        <button class="toggle-link" id="toggleSelect">Select All</button>
+      </div>
+      <div class="grid" id="grid"></div>
+      <button class="btn btn-danger" id="deleteBtn" disabled>Delete Selected</button>
+      <button class="btn btn-primary" id="reloadBtn" style="margin-top:10px">Reload List</button>
+    </div>
+
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    const eventCodeInput = document.getElementById('eventCode');
+    const loadBtn = document.getElementById('loadBtn');
+    const loadSection = document.getElementById('loadSection');
+    const turtleSection = document.getElementById('turtleSection');
+    const grid = document.getElementById('grid');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const reloadBtn = document.getElementById('reloadBtn');
+    const toggleSelect = document.getElementById('toggleSelect');
+    const countLabel = document.getElementById('countLabel');
+    const msg = document.getElementById('message');
+
+    let eventCode = '';
+    let turtleList = [];
+    const selected = new Set();
+
+    const stored = localStorage.getItem('turtleCode');
+    if (stored) eventCodeInput.value = stored;
+
+    function showMsg(text, type) {
+      msg.className = 'message ' + type;
+      msg.textContent = text;
+      msg.style.display = 'block';
+    }
+    function hideMsg() {
+      msg.style.display = 'none';
+    }
+
+    function updateDeleteBtn() {
+      const n = selected.size;
+      deleteBtn.disabled = n === 0;
+      deleteBtn.textContent = n === 0 ? 'Delete Selected' : `Delete Selected (${n})`;
+    }
+
+    function renderGrid() {
+      grid.innerHTML = '';
+      if (turtleList.length === 0) {
+        grid.innerHTML = '<div class="empty">No turtles in the aquarium.</div>';
+        countLabel.textContent = '';
+        toggleSelect.style.display = 'none';
+        updateDeleteBtn();
+        return;
+      }
+      const deletable = turtleList.filter(t => !t.isHero);
+      countLabel.textContent = `${turtleList.length} turtle${turtleList.length !== 1 ? 's' : ''} (${deletable.length} deletable)`;
+      toggleSelect.style.display = deletable.length > 0 ? '' : 'none';
+
+      for (const t of turtleList) {
+        const card = document.createElement('div');
+        card.className = 'turtle-card' + (t.isHero ? ' hero' : '') + (selected.has(t.id) ? ' selected' : '');
+
+        const img = document.createElement('img');
+        img.src = t.imageData || '';
+        img.alt = t.name;
+        card.appendChild(img);
+
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = t.isHero ? `${t.name} (hero)` : t.name;
+        card.appendChild(name);
+
+        if (!t.isHero) {
+          const check = document.createElement('div');
+          check.className = 'check';
+          check.textContent = selected.has(t.id) ? '\u2713' : '';
+          card.appendChild(check);
+
+          card.addEventListener('click', () => {
+            if (selected.has(t.id)) {
+              selected.delete(t.id);
+              card.classList.remove('selected');
+              check.textContent = '';
+            } else {
+              selected.add(t.id);
+              card.classList.add('selected');
+              check.textContent = '\u2713';
+            }
+            updateDeleteBtn();
+          });
+        }
+
+        grid.appendChild(card);
+      }
+      updateDeleteBtn();
+    }
+
+    async function loadTurtles() {
+      hideMsg();
+      loadBtn.disabled = true;
+      loadBtn.textContent = 'Loading...';
+      try {
+        const res = await fetch(`/api/turtles?eventCode=${encodeURIComponent(eventCode)}&knownIds=`);
+        const data = await res.json();
+        if (!res.ok) {
+          showMsg(data.error || 'Failed to load turtles.', 'error');
+          loadBtn.disabled = false;
+          loadBtn.textContent = 'Load Turtles';
+          return;
+        }
+        turtleList = data.turtles || [];
+        // Remove stale selections
+        const validIds = new Set(turtleList.filter(t => !t.isHero).map(t => t.id));
+        for (const id of selected) {
+          if (!validIds.has(id)) selected.delete(id);
+        }
+        loadSection.style.display = 'none';
+        turtleSection.style.display = 'block';
+        renderGrid();
+      } catch {
+        showMsg('Network error. Please try again.', 'error');
+      }
+      loadBtn.disabled = false;
+      loadBtn.textContent = 'Load Turtles';
+    }
+
+    loadBtn.addEventListener('click', () => {
+      eventCode = eventCodeInput.value.trim();
+      if (!eventCode) return;
+      localStorage.setItem('turtleCode', eventCode);
+      loadTurtles();
+    });
+
+    eventCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadBtn.click();
+    });
+
+    reloadBtn.addEventListener('click', () => {
+      loadTurtles();
+    });
+
+    toggleSelect.addEventListener('click', () => {
+      const deletable = turtleList.filter(t => !t.isHero);
+      const allSelected = deletable.every(t => selected.has(t.id));
+      if (allSelected) {
+        selected.clear();
+        toggleSelect.textContent = 'Select All';
+      } else {
+        for (const t of deletable) selected.add(t.id);
+        toggleSelect.textContent = 'Deselect All';
+      }
+      renderGrid();
+    });
+
+    deleteBtn.addEventListener('click', async () => {
+      if (selected.size === 0) return;
+      const n = selected.size;
+      if (!confirm(`Delete ${n} turtle${n !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+
+      hideMsg();
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting...';
+
+      try {
+        const res = await fetch('/api/delete-turtles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventCode, ids: Array.from(selected) }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showMsg(data.error || 'Delete failed.', 'error');
+          deleteBtn.disabled = false;
+          updateDeleteBtn();
+          return;
+        }
+        selected.clear();
+        showMsg(`Deleted ${data.deleted} turtle${data.deleted !== 1 ? 's' : ''}.`, 'success');
+        await loadTurtles();
+      } catch {
+        showMsg('Network error. Please try again.', 'error');
+        deleteBtn.disabled = false;
+        updateDeleteBtn();
+      }
+    });
+  </script>
+</body>
+</html>

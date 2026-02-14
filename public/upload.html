@@ -144,7 +144,12 @@
       color: white;
     }
     .action-btn:active:not(:disabled) { transform: scale(0.97); }
-    .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .action-btn:disabled {
+      background: #aaa !important;
+      color: #ddd;
+      cursor: not-allowed;
+      transform: none !important;
+    }
     .action-btn.closer  { background: #0d7fa5; }
     .action-btn.cake    { background: #d4609a; }
     .action-btn.spin    { background: #e08830; }
@@ -265,7 +270,11 @@
 
         // Disable all buttons during cooldown
         const allBtns = controlPanel.querySelectorAll('.action-btn');
-        allBtns.forEach(b => b.disabled = true);
+        const savedLabels = new Map();
+        allBtns.forEach(b => {
+          savedLabels.set(b, b.textContent.trim());
+          b.disabled = true;
+        });
 
         try {
           const res = await fetch(`/api/turtle/${turtleId}/command`, {
@@ -280,10 +289,6 @@
               msg.textContent = 'Your turtle is no longer in the aquarium.';
               msg.style.display = 'block';
             }
-          } else {
-            // Brief flash to confirm command sent
-            actionBtn.style.opacity = '0.7';
-            setTimeout(() => { actionBtn.style.opacity = ''; }, 150);
           }
         } catch {
           msg.className = 'message error';
@@ -291,9 +296,23 @@
           msg.style.display = 'block';
         }
 
-        // Cooldown then re-enable
+        // Countdown on buttons while cooling down
+        const cooldownSec = cooldown / 1000;
+        let remaining = cooldownSec;
+        allBtns.forEach(b => b.textContent = `Wait ${remaining}s...`);
+        const countdownId = setInterval(() => {
+          remaining--;
+          if (remaining > 0) {
+            allBtns.forEach(b => b.textContent = `Wait ${remaining}s...`);
+          }
+        }, 1000);
+
         setTimeout(() => {
-          allBtns.forEach(b => b.disabled = false);
+          clearInterval(countdownId);
+          allBtns.forEach(b => {
+            b.disabled = false;
+            b.textContent = savedLabels.get(b);
+          });
         }, cooldown);
       });
     }

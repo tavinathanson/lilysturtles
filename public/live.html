@@ -510,8 +510,8 @@
               let v = d[i + ch] / 255;
               // S-curve contrast boost
               v = v < 0.5
-                ? 0.5 * Math.pow(2 * v, 1.5)
-                : 1 - 0.5 * Math.pow(2 * (1 - v), 1.5);
+                ? 0.5 * Math.pow(2 * v, 2.8)
+                : 1 - 0.5 * Math.pow(2 * (1 - v), 2.8);
               // Bump saturation: pull away from gray
               d[i + ch] = Math.max(0, Math.min(255, Math.round(v * 255)));
             }
@@ -607,8 +607,8 @@
       // direction -1 = moving left (-X), heading = π/2
       const initHeading = dir > 0 ? -Math.PI / 2 : Math.PI / 2;
       const startX = dir > 0 ? TANK.xMin - 2 : TANK.xMax + 2;
-      const startY = (Math.random() - 0.5) * 6;
-      const startZ = (Math.random() - 0.5) * 8;
+      const startY = -2 + Math.random() * 2;
+      const startZ = TANK.zMax - 2 + (Math.random() - 0.5) * 4;
       group.position.set(startX, startY, startZ);
       group.rotation.order = 'YXZ';
 
@@ -682,6 +682,19 @@
       let desY = Math.sin(s.wanderPitch);
       let desZ = -Math.cos(s.wanderHeading) * Math.cos(s.wanderPitch);
 
+      // Come-closer: blend in a pull toward the target so the turtle arcs gracefully
+      if (s.comeCloserTarget && s.comeCloserTimer > 3) {
+        const t = s.comeCloserTarget;
+        const dx = t.x - pos.x, dy = t.y - pos.y, dz = t.z - pos.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist > 0.5) {
+          const pull = 5; // strong pull toward target
+          desX += (dx / dist) * pull;
+          desY += (dy / dist) * pull;
+          desZ += (dz / dist) * pull;
+        }
+      }
+
       // Wall avoidance: gentle repulsion that grows near walls
       const margin = 4;
       const force = 2.5;
@@ -706,8 +719,12 @@
       const boostActive = s.comeCloserTimer > 0;
       if (boostActive) s.comeCloserTimer -= dt;
 
-      // Showcase mode: turtle is at front glass, presenting shell to camera
-      const showcaseActive = boostActive && pos.z > TANK.zMax - 4;
+      // Showcase mode: two phases
+      //  1. "rising" — at front glass, tilted to show shell, floating up
+      //  2. "departing" — tilts horizontal and swims forward into the deep
+      const showcaseRising = boostActive && s.comeCloserTimer > 3 && pos.z > TANK.zMax - 6;
+      const showcaseDeparting = boostActive && s.comeCloserTimer <= 3 && s.comeCloserTimer > 0;
+      const showcaseActive = showcaseRising || showcaseDeparting;
 
       // Double-smoothing: raw → smoothTarget → heading
       // Layer 1: smooth the target itself (absorbs jumps)
@@ -720,20 +737,22 @@
       s.heading = lerpAngle(s.heading, s.smoothTargetH, turnRate);
       s.swimPitch += (s.smoothTargetP - s.swimPitch) * turnRate;
 
-      if (showcaseActive) {
-        // Showcase: ease to front-center, turn around to show shell
-        const easeRate = Math.min(1, dt * 1.5);
+      if (showcaseRising) {
+        // Phase 1: at front glass, scale up, float upward to show full shell
+        const easeRate = Math.min(1, dt * 4);
         pos.x += (0 - pos.x) * easeRate;
-        pos.y += (1 - pos.y) * easeRate;
         pos.z += ((TANK.zMax - 0.5) - pos.z) * easeRate;
-        // Turn to face into the tank (heading=0 → shell faces camera)
-        s.heading = lerpAngle(s.heading, 0, Math.min(1, dt * 3));
-        s.swimPitch += (0 - s.swimPitch) * Math.min(1, dt * 3);
-        // Scale up so drawing is clearly visible
-        const targetScale = 1.4;
-        const curScale = g.scale.x;
-        const sc = curScale + (targetScale - curScale) * Math.min(1, dt * 2);
-        g.scale.set(sc, sc, sc);
+        // Float upward — fast enough to reveal the full shell
+        pos.y += dt * 2.0;
+        // Face into tank (heading=0 → shell faces camera)
+        s.heading = lerpAngle(s.heading, 0, Math.min(1, dt * 5));
+        s.swimPitch += (0 - s.swimPitch) * Math.min(1, dt * 5);
+      } else if (showcaseDeparting) {
+        // Phase 2: keep facing into tank (heading=0), tilt horizontal, swim forward
+        s.heading = lerpAngle(s.heading, 0, Math.min(1, dt * 2));
+        s.swimPitch += (0 - s.swimPitch) * Math.min(1, dt * 2);
+        // Swim forward into the deep (heading=0 → -z direction)
+        pos.z -= dt * 4;
       } else {
         // --- Normal forward movement ---
         const cp = Math.cos(s.swimPitch);
@@ -741,20 +760,10 @@
         const dy = Math.sin(s.swimPitch);
         const dz = -Math.cos(s.heading) * cp;
 
-        const moveSpeed = s.speed * (boostActive ? 2.5 : 1.0);
+        const moveSpeed = s.speed * (boostActive ? 4.0 : 1.0);
         pos.x += dx * moveSpeed * dt;
         pos.y += dy * moveSpeed * dt;
         pos.z += dz * moveSpeed * dt;
-        // Reset scale if returning from showcase
-        if (s.spinRemaining <= 0) {
-          const curScale = g.scale.x;
-          if (curScale > 1.01) {
-            const sc = curScale + (1 - curScale) * Math.min(1, dt * 2);
-            g.scale.set(sc, sc, sc);
-          } else if (curScale !== 1) {
-            g.scale.set(1, 1, 1);
-          }
-        }
       }
 
       // Gentle bob
@@ -766,13 +775,18 @@
       pos.z = Math.max(TANK.zMin, Math.min(TANK.zMax, pos.z));
 
       // --- Visual rotation (all smoothed) ---
-      if (showcaseActive) {
-        // Tilt shell toward camera for clear view of drawing
-        const showcaseTilt = -0.75;
+      if (showcaseRising) {
+        // Tilt shell toward camera — nearly vertical so drawing is fully visible
+        const showcaseTilt = 0.3;
         g.rotation.x += (showcaseTilt - g.rotation.x) * Math.min(1, dt * 3);
         g.rotation.y = s.heading;
-        // No banking during showcase — keep steady
         s.bankAngle += (0 - s.bankAngle) * Math.min(1, dt * 3);
+        g.rotation.z = s.bankAngle;
+      } else if (showcaseDeparting) {
+        // Ease back to normal swimming tilt
+        g.rotation.x += (s.baseTilt - g.rotation.x) * Math.min(1, dt * 2);
+        g.rotation.y = s.heading;
+        s.bankAngle += (0 - s.bankAngle) * Math.min(1, dt * 2);
         g.rotation.z = s.bankAngle;
       } else {
         const swimWobble = Math.sin(time * 1.8 + s.phase) * 0.06;
@@ -785,23 +799,24 @@
         g.rotation.z = s.bankAngle;
       }
 
-      // --- Barrel roll (spin command) ---
+      // --- Spin command: swim in fast circles ---
       if (s.spinRemaining > 0) {
-        const spinSpeed = Math.PI * 8; // 4 rotations per second — fast!
+        const spinSpeed = Math.PI * 3; // ~1.5 full heading rotations per second
         const spinStep = Math.min(s.spinRemaining, spinSpeed * dt);
-        g.rotation.z += spinStep;
+        s.heading += spinStep;
+        s.smoothTargetH = s.heading;
+        s.rawTargetH = s.heading;
+        s.wanderHeading = s.heading;
         s.spinRemaining -= spinStep;
 
-        // Progress 0→1 over the spin
-        const progress = 1 - (s.spinRemaining / s.spinTotal);
-        // Vertical pop: arc up then back down
-        pos.y += Math.sin(progress * Math.PI) * 0.4;
-        // Scale pulse: grow then shrink
-        const sc = 1 + Math.sin(progress * Math.PI) * 0.25;
-        g.scale.set(sc, sc, sc);
+        // Swim forward fast while turning — creates circles
+        const cp = Math.cos(s.swimPitch);
+        const moveSpeed = s.speed * 3;
+        pos.x += -Math.sin(s.heading) * cp * moveSpeed * dt;
+        pos.z += -Math.cos(s.heading) * cp * moveSpeed * dt;
+        // Gentle upward arc
+        pos.y += Math.sin((1 - s.spinRemaining / s.spinTotal) * Math.PI) * 0.15;
       } else if (s.spinTotal > 0) {
-        // Reset scale after spin ends (showcase handles its own scale)
-        if (!showcaseActive) g.scale.set(1, 1, 1);
         s.spinTotal = 0;
       }
 
@@ -853,16 +868,10 @@
         }
       }
 
-      // --- Name fade ---
+      // --- Name fade (fade in then stay visible) ---
       if (s.namePhase === 'fadein') {
         s.nameOpacity = Math.min(1, s.nameOpacity + dt);
-        if (s.nameOpacity >= 1) { s.namePhase = 'visible'; s.nameTimer = 0; }
-      } else if (s.namePhase === 'visible') {
-        s.nameTimer += dt;
-        if (s.nameTimer >= 30) s.namePhase = 'fadeout';
-      } else if (s.namePhase === 'fadeout') {
-        s.nameOpacity = Math.max(0, s.nameOpacity - dt);
-        if (s.nameOpacity <= 0) s.namePhase = 'done';
+        if (s.nameOpacity >= 1) s.namePhase = 'visible';
       }
     }
 
@@ -1356,18 +1365,9 @@
 
       switch (command) {
         case 'come_closer': {
-          // Aim at front glass so shell is right up against the camera
-          const targetX = 0, targetY = 1, targetZ = TANK.zMax - 0.5;
-          const dx = targetX - entry.group.position.x;
-          const dy = targetY - entry.group.position.y;
-          const dz = targetZ - entry.group.position.z;
-          const hLen = Math.sqrt(dx * dx + dz * dz);
-          s.wanderHeading = Math.atan2(-dx, -dz);
-          s.wanderPitch = Math.atan2(dy, Math.max(hLen, 0.01));
-          s.wanderPitch = Math.max(-0.35, Math.min(0.35, s.wanderPitch));
-          s.wanderTimer = 15;
-          s.wanderInterval = s.wanderTimer;
-          s.comeCloserTimer = 10; // approach + showcase for 10s
+          // Store target — movement code will arc toward it gracefully
+          s.comeCloserTarget = { x: 0, y: 1, z: TANK.zMax - 0.5 };
+          s.comeCloserTimer = 8;
           break;
         }
 
@@ -1382,8 +1382,8 @@
           break;
 
         case 'spin':
-          // Trigger a dramatic barrel roll with pop and scale pulse
-          s.spinTotal = Math.PI * 6;  // 3 full rotations
+          // Swim in fast circles
+          s.spinTotal = Math.PI * 6;  // 3 full circles
           s.spinRemaining = s.spinTotal;
           break;
       }
@@ -1397,6 +1397,7 @@
         if (!res.ok) return;
         const data = await res.json();
         const serverIds = new Set();
+        const isFirstSync = turtleMap.size === 0;
 
         for (const st of data.turtles) {
           try {
@@ -1409,6 +1410,8 @@
             } else {
               e = await createTurtle3D(st);
               turtleMap.set(st.id, e);
+              // Auto-showcase new turtles (skip on first load and for hero)
+              if (!isFirstSync && !st.isHero) e.state.comeCloserTimer = 6;
             }
             // Handle commands (deduplicate with SSE delivery)
             if (st.command) {
@@ -1453,6 +1456,23 @@
           if (entry) handleCommand(entry, data.command);
         } catch {}
       };
+      es.addEventListener('delete', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (!Array.isArray(data.deleted)) return;
+          for (const id of data.deleted) {
+            const e = turtleMap.get(id);
+            if (!e) continue;
+            scene.remove(e.group);
+            e.labelDiv.remove();
+            if (e.shellMat) {
+              if (e.shellMat.map) e.shellMat.map.dispose();
+              e.shellMat.dispose();
+            }
+            turtleMap.delete(id);
+          }
+        } catch {}
+      });
       return es;
     }
 
