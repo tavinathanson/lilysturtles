@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Lily's Turtles</title>
+  <title>Turtles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet">
   <style>
@@ -96,11 +96,11 @@
 </head>
 <body>
   <div id="container"></div>
-  <div id="labels"><div id="title-label">Lily's Turtles</div></div>
+  <div id="labels"><div id="title-label">Turtles</div></div>
 
   <div id="overlay">
     <div class="code-box">
-      <h1>Lily's Turtles</h1>
+      <h1>Turtles</h1>
       <p>Enter the Turtle Code</p>
       <input type="text" id="codeInput" inputmode="numeric" pattern="\d*" maxlength="10" autocomplete="off">
       <button id="codeSubmit">Enter</button>
@@ -123,6 +123,14 @@
     const codeInput = document.getElementById('codeInput');
     const codeSubmit = document.getElementById('codeSubmit');
     const codeError = document.getElementById('codeError');
+
+    // --- Fetch config title ---
+    fetch('/api/config?mode=turtles').then(r => r.json()).then(cfg => {
+      const t = cfg.title || 'Turtles';
+      document.title = t;
+      titleLabel.textContent = t;
+      document.querySelector('.code-box h1').textContent = t;
+    }).catch(() => {});
 
     // --- State ---
     let eventCode = '';

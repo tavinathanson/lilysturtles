@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dinosaur Coloring Pages</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .no-print {
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .no-print h1 { color: #5a3e1b; font-size: 28px; margin-bottom: 8px; }
+  .no-print p { color: #555; font-size: 16px; margin-bottom: 16px; max-width: 480px; }
+  .species-btns {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .species-btns button {
+    background: #8B6914;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .species-btns button:hover { background: #6d5210; }
+  .species-btns button.active { background: #4a7a2e; }
+  .print-btn {
+    background: #4a7a2e;
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  .print-btn:hover { background: #3a6220; }
+
+  .page {
+    width: 8.5in;
+    height: 11in;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35in 0.35in;
+    gap: 12px;
+  }
+  .page.hidden { display: none; }
+
+  .page-title {
+    font-size: 38px;
+    font-weight: 900;
+    color: #222;
+    text-align: center;
+  }
+
+  .dino-svg {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .name-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .name-line span {
+    font-size: 20px;
+    color: #999;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .name-line .line {
+    display: inline-block;
+    width: 260px;
+    border-bottom: 2px solid #ccc;
+  }
+
+  @media print {
+    @page { size: letter; margin: 0; }
+    body { background: white; padding: 0; }
+    .no-print { display: none !important; }
+    .page.hidden { display: none !important; }
+    .page {
+      box-shadow: none;
+      width: 100%;
+      height: 100vh;
+      padding: 0.3in 0.35in;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <h1>Dinosaur Coloring Pages</h1>
+  <p>Pick a dinosaur, print the page, color it in, then take a photo and upload it!</p>
+  <div class="species-btns">
+    <button onclick="showSpecies('trex')" id="btn-trex" class="active">T-Rex</button>
+    <button onclick="showSpecies('triceratops')" id="btn-triceratops">Triceratops</button>
+    <button onclick="showSpecies('stegosaurus')" id="btn-stegosaurus">Stegosaurus</button>
+    <button onclick="showSpecies('brachiosaurus')" id="btn-brachiosaurus">Brachiosaurus</button>
+  </div>
+  <button class="print-btn" onclick="window.print()">Print Coloring Page</button>
+</div>
+
+<!-- T-Rex (1 dot) -->
+<div class="page" id="page-trex">
+  <div class="page-title">Color the T-Rex!</div>
+  <svg class="dino-svg" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
+    <!-- Dot indicator: 1 dot = T-Rex -->
+    <rect x="590" y="10" width="80" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/>
+    <circle cx="630" cy="30" r="10" fill="#000"/>
+
+    <!-- T-Rex silhouette — side profile facing right -->
+    <path d="
+      M 180 520
+      L 180 480
+      Q 170 440 180 400
+      Q 185 360 200 340
+      L 200 300
+      Q 190 260 200 220
+      Q 210 180 240 160
+      Q 270 140 300 130
+      L 320 125
+      Q 340 118 360 110
+      Q 400 95 440 90
+      Q 480 88 500 95
+      Q 520 100 530 115
+      Q 540 130 535 145
+      L 520 150
+      Q 530 155 535 165
+      Q 540 178 530 188
+      Q 520 195 505 190
+      L 490 185
+      Q 470 188 460 195
+      Q 440 210 430 230
+      Q 420 250 415 270
+      Q 410 290 400 310
+      L 380 320
+      Q 395 330 400 345
+      L 390 355
+      L 375 348
+      Q 360 350 350 360
+      Q 340 380 340 400
+      Q 342 430 350 460
+      L 360 480
+      L 360 520
+      L 330 520
+      L 325 490
+      Q 310 460 300 440
+      Q 280 420 260 430
+      Q 250 440 250 460
+      L 255 480
+      L 255 520
+      L 225 520
+      L 222 490
+      Q 220 470 215 460
+      Q 200 450 190 460
+      Q 185 480 185 500
+      L 185 520
+      Z
+    " fill="white" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
+
+    <!-- Eye -->
+    <circle cx="490" cy="112" r="10" fill="white" stroke="#000" stroke-width="3"/>
+    <circle cx="493" cy="110" r="5" fill="#000"/>
+
+    <!-- Teeth hints on jaw -->
+    <path d="M505 155 L510 162 L515 155 L520 162 L525 155" fill="none" stroke="#000" stroke-width="2.5"/>
+
+    <!-- Tiny arm -->
+    <path d="M390 260 Q 400 270 395 280 L 388 278 M395 280 L 400 285" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+  </svg>
+  <div class="name-line">
+    <span>Dinosaur's name:</span>
+    <span class="line">&nbsp;</span>
+  </div>
+</div>
+
+<!-- Triceratops (2 dots) -->
+<div class="page hidden" id="page-triceratops">
+  <div class="page-title">Color the Triceratops!</div>
+  <svg class="dino-svg" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
+    <!-- Dot indicator: 2 dots = Triceratops -->
+    <rect x="570" y="10" width="100" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/>
+    <circle cx="600" cy="30" r="10" fill="#000"/>
+    <circle cx="640" cy="30" r="10" fill="#000"/>
+
+    <!-- Triceratops silhouette — side profile facing right -->
+    <path d="
+      M 120 500
+      L 120 460
+      Q 115 430 120 400
+      Q 130 370 150 350
+      Q 170 330 190 320
+      Q 200 310 210 295
+      Q 220 275 225 260
+      Q 225 240 220 225
+      Q 210 210 195 200
+      Q 175 195 160 200
+      Q 145 210 140 225
+      Q 130 235 120 230
+      Q 115 220 120 210
+      Q 130 195 150 185
+      Q 170 178 190 180
+      Q 215 178 235 168
+      Q 260 155 280 150
+      Q 310 145 340 148
+      Q 370 150 395 160
+      Q 420 170 440 185
+      Q 455 195 465 210
+      Q 478 215 490 210
+      Q 500 200 510 205
+      Q 515 215 508 225
+      Q 500 230 490 228
+      Q 480 230 475 240
+      Q 470 255 460 265
+      Q 445 280 425 290
+      Q 410 295 400 305
+      Q 390 320 385 340
+      Q 382 360 385 380
+      Q 388 400 395 420
+      L 400 450
+      L 400 500
+      L 370 500
+      L 365 470
+      Q 358 445 345 430
+      Q 320 415 295 420
+      Q 275 425 260 440
+      Q 250 455 250 470
+      L 252 500
+      L 222 500
+      L 218 470
+      Q 210 445 195 435
+      Q 175 428 160 435
+      Q 148 445 145 465
+      L 145 500
+      Z
+    " fill="white" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
+
+    <!-- Frill scalloped edge -->
+    <path d="
+      M 195 200
+      Q 205 185 220 182
+      Q 235 178 250 170
+      Q 265 162 280 158
+      Q 300 152 320 150
+      Q 340 150 360 155
+      Q 380 160 395 168
+      Q 410 175 425 185
+      Q 440 195 450 210
+    " fill="none" stroke="#000" stroke-width="4" stroke-dasharray="8,6"/>
+
+    <!-- Horns -->
+    <line x1="350" y1="170" x2="370" y2="120" stroke="#000" stroke-width="6" stroke-linecap="round"/>
+    <line x1="300" y1="168" x2="280" y2="115" stroke="#000" stroke-width="6" stroke-linecap="round"/>
+    <!-- Nose horn -->
+    <line x1="145" y1="225" x2="125" y2="195" stroke="#000" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- Eye -->
+    <circle cx="410" cy="220" r="10" fill="white" stroke="#000" stroke-width="3"/>
+    <circle cx="413" cy="218" r="5" fill="#000"/>
+  </svg>
+  <div class="name-line">
+    <span>Dinosaur's name:</span>
+    <span class="line">&nbsp;</span>
+  </div>
+</div>
+
+<!-- Stegosaurus (3 dots) -->
+<div class="page hidden" id="page-stegosaurus">
+  <div class="page-title">Color the Stegosaurus!</div>
+  <svg class="dino-svg" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
+    <!-- Dot indicator: 3 dots = Stegosaurus -->
+    <rect x="550" y="10" width="120" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/>
+    <circle cx="580" cy="30" r="10" fill="#000"/>
+    <circle cx="610" cy="30" r="10" fill="#000"/>
+    <circle cx="640" cy="30" r="10" fill="#000"/>
+
+    <!-- Stegosaurus silhouette — side profile facing right -->
+    <path d="
+      M 100 490
+      L 100 450
+      Q 105 420 115 400
+      Q 130 375 150 360
+      Q 170 348 190 340
+      Q 210 335 230 332
+      Q 260 330 290 332
+      Q 320 335 350 340
+      Q 380 346 400 355
+      Q 420 365 435 380
+      Q 445 395 448 410
+      Q 450 425 445 440
+      Q 440 450 430 458
+      Q 420 462 410 460
+      L 400 455
+      Q 395 462 398 475
+      L 398 490
+      L 370 490
+      L 368 470
+      Q 365 450 355 440
+      Q 340 432 320 435
+      Q 300 440 290 450
+      L 285 470
+      L 285 490
+      L 258 490
+      L 255 470
+      Q 248 445 235 435
+      Q 215 425 195 430
+      Q 180 438 175 455
+      L 172 470
+      L 170 490
+      L 140 490
+      L 138 470
+      Q 132 445 120 435
+      Q 110 430 105 440
+      L 102 460
+      L 102 490
+      Z
+    " fill="white" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
+
+    <!-- Head (small, low) -->
+    <path d="
+      M 430 458
+      Q 445 445 460 440
+      Q 480 436 500 440
+      Q 515 445 520 455
+      Q 522 465 515 470
+      Q 505 472 495 468
+      L 480 465
+      Q 460 465 445 462
+    " fill="white" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
+
+    <!-- Eye -->
+    <circle cx="498" cy="452" r="6" fill="white" stroke="#000" stroke-width="2.5"/>
+    <circle cx="500" cy="451" r="3" fill="#000"/>
+
+    <!-- Back plates (diamond shapes along the spine) -->
+    <polygon points="180,330 195,270 210,330" fill="white" stroke="#000" stroke-width="5"/>
+    <polygon points="220,328 240,255 260,328" fill="white" stroke="#000" stroke-width="5"/>
+    <polygon points="265,330 290,245 315,330" fill="white" stroke="#000" stroke-width="5"/>
+    <polygon points="320,332 345,260 370,338" fill="white" stroke="#000" stroke-width="5"/>
+    <polygon points="375,340 395,285 415,355" fill="white" stroke="#000" stroke-width="5"/>
+
+    <!-- Tail spikes -->
+    <line x1="110" y1="400" x2="70" y2="360" stroke="#000" stroke-width="6" stroke-linecap="round"/>
+    <line x1="120" y1="385" x2="85" y2="340" stroke="#000" stroke-width="6" stroke-linecap="round"/>
+    <line x1="105" y1="415" x2="60" y2="390" stroke="#000" stroke-width="5" stroke-linecap="round"/>
+  </svg>
+  <div class="name-line">
+    <span>Dinosaur's name:</span>
+    <span class="line">&nbsp;</span>
+  </div>
+</div>
+
+<!-- Brachiosaurus (4 dots) -->
+<div class="page hidden" id="page-brachiosaurus">
+  <div class="page-title">Color the Brachiosaurus!</div>
+  <svg class="dino-svg" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
+    <!-- Dot indicator: 4 dots = Brachiosaurus -->
+    <rect x="530" y="10" width="140" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/>
+    <circle cx="560" cy="30" r="10" fill="#000"/>
+    <circle cx="590" cy="30" r="10" fill="#000"/>
+    <circle cx="620" cy="30" r="10" fill="#000"/>
+    <circle cx="650" cy="30" r="10" fill="#000"/>
+
+    <!-- Brachiosaurus silhouette — side profile, long neck -->
+    <path d="
+      M 420 540
+      L 420 500
+      Q 418 470 420 445
+      Q 425 415 435 395
+      Q 445 378 460 368
+      Q 478 358 495 355
+      Q 510 354 520 360
+      Q 528 368 525 380
+      Q 520 390 510 395
+      Q 498 398 485 395
+      Q 470 392 458 400
+      Q 448 410 445 430
+      L 443 460
+      L 443 500
+      L 443 540
+      L 420 540
+      Z
+      M 280 540
+      L 280 500
+      Q 278 470 280 440
+      Q 285 410 298 390
+      Q 310 375 325 365
+      Q 340 358 355 358
+      Q 370 360 378 370
+      Q 385 382 380 395
+      Q 372 405 360 408
+      Q 345 410 332 405
+      Q 318 402 308 412
+      Q 300 425 298 445
+      L 298 480
+      L 298 540
+      L 280 540
+      Z
+    " fill="white" stroke="#000" stroke-width="7" stroke-linejoin="round"/>
+
+    <!-- Body -->
+    <ellipse cx="365" cy="370" rx="120" ry="75" fill="white" stroke="#000" stroke-width="8"/>
+
+    <!-- Tail -->
+    <path d="
+      M 245 370
+      Q 210 365 180 375
+      Q 150 388 130 395
+      Q 100 405 80 400
+      Q 65 395 60 385
+    " fill="none" stroke="#000" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- Neck -->
+    <path d="
+      M 440 340
+      Q 455 300 465 260
+      Q 475 220 478 180
+      Q 480 150 475 120
+      Q 470 100 460 90
+    " fill="none" stroke="#000" stroke-width="28" stroke-linecap="round"/>
+    <!-- Neck interior (white fill) -->
+    <path d="
+      M 440 340
+      Q 455 300 465 260
+      Q 475 220 478 180
+      Q 480 150 475 120
+      Q 470 100 460 90
+    " fill="none" stroke="white" stroke-width="16" stroke-linecap="round"/>
+
+    <!-- Head -->
+    <ellipse cx="452" cy="82" rx="35" ry="22" fill="white" stroke="#000" stroke-width="6"/>
+
+    <!-- Eye -->
+    <circle cx="468" cy="76" r="7" fill="white" stroke="#000" stroke-width="2.5"/>
+    <circle cx="470" cy="75" r="3.5" fill="#000"/>
+
+    <!-- Nostril bump -->
+    <ellipse cx="430" cy="75" rx="8" ry="6" fill="none" stroke="#000" stroke-width="2.5"/>
+
+    <!-- Smile -->
+    <path d="M440 90 Q452 97 464 90" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </svg>
+  <div class="name-line">
+    <span>Dinosaur's name:</span>
+    <span class="line">&nbsp;</span>
+  </div>
+</div>
+
+<script>
+  function showSpecies(species) {
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-' + species).classList.remove('hidden');
+    document.querySelectorAll('.species-btns button').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + species).classList.add('active');
+  }
+</script>
+
+</body>
+</html>

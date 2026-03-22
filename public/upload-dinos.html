@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Upload — Turtles</title>
+  <title>Upload — Dinosaurs</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0a4d6e 0%, #0d7fa5 50%, #14a3c7 100%);
+      background: linear-gradient(135deg, #5a3e1b 0%, #8B6914 50%, #a07a28 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -25,7 +25,7 @@
     }
     h1 {
       text-align: center;
-      color: #0a4d6e;
+      color: #5a3e1b;
       font-size: 24px;
       margin-bottom: 8px;
     }
@@ -55,7 +55,7 @@
     }
     input[type="text"]:focus {
       outline: none;
-      border-color: #14a3c7;
+      border-color: #8B6914;
     }
     input[type="file"] {
       display: none;
@@ -64,12 +64,12 @@
       display: block;
       width: 100%;
       padding: 14px;
-      border: 2px dashed #14a3c7;
+      border: 2px dashed #8B6914;
       border-radius: 12px;
       font-size: 16px;
       margin-bottom: 18px;
-      background: #f0f9fc;
-      color: #0d7fa5;
+      background: #fdf6e3;
+      color: #6d5210;
       text-align: center;
       cursor: pointer;
       font-weight: 600;
@@ -77,7 +77,7 @@
     button {
       width: 100%;
       padding: 16px;
-      background: #0d7fa5;
+      background: #8B6914;
       color: white;
       border: none;
       border-radius: 12px;
@@ -87,7 +87,7 @@
       min-height: 52px;
       transition: background 0.2s;
     }
-    button:active { background: #0a6a8a; }
+    button:active { background: #6d5210; }
     button:disabled {
       background: #999;
       cursor: not-allowed;
@@ -115,10 +115,9 @@
       background: #fff3cd;
       color: #856404;
     }
-    /* Control panel (shown after upload) */
     .control-panel { display: none; text-align: center; }
     .control-panel h2 {
-      color: #0a4d6e;
+      color: #5a3e1b;
       font-size: 22px;
       margin-bottom: 4px;
     }
@@ -150,46 +149,40 @@
       cursor: not-allowed;
       transform: none !important;
     }
-    .action-btn.closer  { background: #0d7fa5; }
-    .action-btn.cake    { background: #d4609a; }
+    .action-btn.closer  { background: #8B6914; }
+    .action-btn.hat     { background: #d4609a; }
     .action-btn.spin    { background: #e08830; }
-    .cooldown-bar {
-      height: 3px;
-      background: rgba(255,255,255,0.5);
-      border-radius: 2px;
-      margin-top: 6px;
-      transition: width linear;
-      width: 0;
-    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Turtles</h1>
-    <p class="subtitle">Add your turtle to the aquarium!</p>
+    <h1>Dinosaurs</h1>
+    <p class="subtitle">Add your dinosaur to the landscape!</p>
     <form id="uploadForm">
-      <label for="name">Turtle Name</label>
-      <input type="text" id="name" name="name" required maxlength="30" placeholder="What's your turtle called?">
+      <input type="hidden" name="mode" value="dino">
 
-      <label for="photo">Turtle Photo</label>
+      <label for="name">Dinosaur Name</label>
+      <input type="text" id="name" name="name" required maxlength="30" placeholder="What's your dinosaur called?">
+
+      <label for="photo">Dinosaur Photo</label>
       <label for="photo" class="photo-btn" id="photoLabel">📷 Take Photo</label>
       <input type="file" id="photo" name="photo" accept="image/*" capture="environment" required>
 
-      <label for="eventCode">Turtle Code</label>
+      <label for="eventCode">Dino Code</label>
       <input type="text" id="eventCode" name="eventCode" required inputmode="numeric" pattern="\d*" placeholder="4-digit code" autocomplete="off">
 
-      <button type="submit" id="submitBtn">Add My Turtle!</button>
+      <button type="submit" id="submitBtn">Add My Dinosaur!</button>
     </form>
     <div class="message" id="message"></div>
 
     <div class="control-panel" id="controlPanel">
-      <h2 id="turtleNameDisplay"></h2>
-      <div class="success-msg">Your turtle is swimming in the aquarium!</div>
+      <h2 id="dinoNameDisplay"></h2>
+      <div class="success-msg">Your dinosaur is roaming the landscape!</div>
       <button class="action-btn closer" data-action="come_closer" data-cooldown="8">
         Come Closer
       </button>
-      <button class="action-btn cake" data-action="birthday_cake" data-cooldown="5">
-        Birthday Cake
+      <button class="action-btn hat" data-action="party_hat" data-cooldown="5">
+        Party Hat
       </button>
       <button class="action-btn spin" data-action="spin" data-cooldown="6">
         Do a Spin
@@ -202,17 +195,21 @@
     const msg = document.getElementById('message');
     const btn = document.getElementById('submitBtn');
     const controlPanel = document.getElementById('controlPanel');
-    const turtleNameDisplay = document.getElementById('turtleNameDisplay');
+    const dinoNameDisplay = document.getElementById('dinoNameDisplay');
 
-    let turtleId = null;
+    let dinoId = null;
     let savedEventCode = '';
 
     // Fetch title from config
-    fetch('/api/config?mode=turtles').then(r => r.json()).then(cfg => {
-      const t = cfg.title || 'Turtles';
+    fetch('/api/config?mode=dinos').then(r => r.json()).then(cfg => {
+      const t = cfg.title || 'Dinosaurs';
       document.title = 'Upload — ' + t;
       document.querySelector('h1').textContent = t;
     }).catch(() => {});
+
+    // Restore saved event code
+    const stored = localStorage.getItem('dinoCode');
+    if (stored) document.getElementById('eventCode').value = stored;
 
     document.getElementById('photo').addEventListener('change', function() {
       const label = document.getElementById('photoLabel');
@@ -237,16 +234,14 @@
           msg.textContent = data.error || 'Upload failed.';
           msg.style.display = 'block';
           btn.disabled = false;
-          btn.textContent = 'Add My Turtle!';
+          btn.textContent = 'Add My Dinosaur!';
           return;
         }
 
-        // Save event code and turtle info
         savedEventCode = document.getElementById('eventCode').value;
-        localStorage.setItem('turtleCode', savedEventCode);
-        turtleId = data.id;
+        localStorage.setItem('dinoCode', savedEventCode);
+        dinoId = data.id;
 
-        // Show hint if circle wasn't fully detected
         if (data.hint) {
           msg.className = 'message hint';
           msg.textContent = data.hint;
@@ -255,27 +250,25 @@
           msg.style.display = 'none';
         }
 
-        // Switch to control panel
         form.style.display = 'none';
-        turtleNameDisplay.textContent = data.name;
+        dinoNameDisplay.textContent = data.name;
         controlPanel.style.display = 'block';
       } catch (err) {
         msg.className = 'message error';
         msg.textContent = 'Network error. Please try again.';
         msg.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Add My Turtle!';
+        btn.textContent = 'Add My Dinosaur!';
       }
     });
 
     // Action buttons with cooldown
     for (const actionBtn of controlPanel.querySelectorAll('.action-btn')) {
       actionBtn.addEventListener('click', async () => {
-        if (actionBtn.disabled || !turtleId) return;
+        if (actionBtn.disabled || !dinoId) return;
         const action = actionBtn.dataset.action;
         const cooldown = parseInt(actionBtn.dataset.cooldown, 10) * 1000;
 
-        // Disable all buttons during cooldown
         const allBtns = controlPanel.querySelectorAll('.action-btn');
         const savedLabels = new Map();
         allBtns.forEach(b => {
@@ -284,16 +277,16 @@
         });
 
         try {
-          const res = await fetch(`/api/turtle/${turtleId}/command`, {
+          const res = await fetch(`/api/turtle/${dinoId}/command`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, eventCode: savedEventCode }),
           });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            if (data.error === 'Turtle not found.') {
+            if (data.error === 'Not found.') {
               msg.className = 'message error';
-              msg.textContent = 'Your turtle is no longer in the aquarium.';
+              msg.textContent = 'Your dinosaur is no longer in the landscape.';
               msg.style.display = 'block';
             }
           }
@@ -303,7 +296,6 @@
           msg.style.display = 'block';
         }
 
-        // Countdown on buttons while cooling down
         const cooldownSec = cooldown / 1000;
         let remaining = cooldownSec;
         allBtns.forEach(b => b.textContent = `Wait ${remaining}s...`);

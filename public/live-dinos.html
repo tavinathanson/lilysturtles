@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Dinosaurs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a3a1a; }
+    #container { width: 100%; height: 100%; }
+    canvas { display: block; }
+
+    #labels {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; overflow: hidden;
+    }
+    #title-label {
+      position: absolute;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      color: #ffe8a0;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.6), 0 1px 2px rgba(0,0,0,0.4);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .dino-label {
+      position: absolute;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      color: white;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      white-space: nowrap;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    #overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(30,50,20,0.92);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10;
+    }
+    .code-box {
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      padding: 36px 32px;
+      text-align: center;
+      max-width: 340px;
+      width: 90%;
+    }
+    .code-box h1 { color: #5a3e1b; font-family: 'Nunito', sans-serif; font-size: 26px; margin-bottom: 12px; }
+    .code-box p { color: #666; margin-bottom: 18px; font-size: 15px; }
+    .code-box input {
+      width: 100%; padding: 14px; border: 2px solid #ddd; border-radius: 12px;
+      font-size: 20px; text-align: center; margin-bottom: 14px; letter-spacing: 4px;
+      -webkit-appearance: none;
+    }
+    .code-box input:focus { outline: none; border-color: #8B6914; }
+    .code-box button {
+      width: 100%; padding: 14px; background: #8B6914; color: white;
+      border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer;
+    }
+    .code-box button:active { background: #6d5210; }
+    .error { color: #c00; font-size: 14px; margin-top: 10px; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div id="labels"><div id="title-label">Dinosaurs</div></div>
+
+  <div id="overlay">
+    <div class="code-box">
+      <h1>Dinosaurs</h1>
+      <p>Enter the Dino Code</p>
+      <input type="text" id="codeInput" inputmode="numeric" pattern="\d*" maxlength="10" autocomplete="off">
+      <button id="codeSubmit">Enter</button>
+      <div class="error" id="codeError"></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // --- DOM ---
+    const container = document.getElementById('container');
+    const labelsDiv = document.getElementById('labels');
+    const titleLabel = document.getElementById('title-label');
+    const overlay = document.getElementById('overlay');
+    const codeInput = document.getElementById('codeInput');
+    const codeSubmit = document.getElementById('codeSubmit');
+    const codeError = document.getElementById('codeError');
+
+    // --- Fetch config title ---
+    fetch('/api/config?mode=dinos').then(r => r.json()).then(cfg => {
+      const t = cfg.title || 'Dinosaurs';
+      document.title = t;
+      titleLabel.textContent = t;
+      document.querySelector('.code-box h1').textContent = t;
+    }).catch(() => {});
+
+    // --- State ---
+    let eventCode = '';
+    const dinoMap = new Map();
+    let landscapeRunning = false;
+    let pollTimer = null;
+    const processedCommands = new Set();
+    let titleOpacity = 0;
+    let startTime = 0;
+
+    // --- Arena ---
+    const ARENA = { xMin: -13, xMax: 13, zMin: -7, zMax: 16 };
+    const GROUND_Y = -6;
+
+    // --- Scene ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB);
+    // Sky gradient via fog
+    scene.fog = new THREE.FogExp2(0x9DC4E8, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(0, 2, ARENA.zMax + 6);
+    camera.lookAt(0, -1, 4);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    container.appendChild(renderer.domElement);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // --- Lighting (warm, sunny) ---
+    const ambientLight = new THREE.AmbientLight(0xfff5e0, 0.7);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    sunLight.position.set(5, 15, 8);
+    scene.add(sunLight);
+
+    const warmFill = new THREE.DirectionalLight(0xffcc66, 0.4);
+    warmFill.position.set(-4, 8, -2);
+    scene.add(warmFill);
+
+    // --- Shared materials ---
+    const woodMat = new THREE.MeshStandardMaterial({
+      color: 0xC4A06A, roughness: 0.85, metalness: 0
+    });
+
+    // ===================================================================
+    // DINOSAUR SILHOUETTE PATHS
+    // ===================================================================
+    // Each path is defined facing right, normalized roughly to a bounding box.
+    // Actual size is controlled by scale factor per species.
+
+    function makeTrexShape() {
+      const s = new THREE.Shape();
+      // Simple T-Rex profile — big head, small arms, thick legs, tail
+      s.moveTo(0, 0);       // left foot
+      s.lineTo(0, 2.0);     // left leg up
+      s.lineTo(-0.3, 2.5);  // hip
+      s.lineTo(-1.2, 2.3);  // tail dip
+      s.lineTo(-2.0, 2.6);  // tail tip
+      s.lineTo(-1.4, 2.8);  // tail top
+      s.lineTo(-0.3, 3.0);  // back
+      s.lineTo(0.2, 3.5);   // upper back
+      s.lineTo(0.5, 4.2);   // neck base
+      s.lineTo(0.7, 4.8);   // neck
+      s.lineTo(1.0, 5.2);   // head top
+      s.lineTo(1.8, 5.3);   // head crown
+      s.lineTo(2.2, 5.0);   // forehead
+      s.lineTo(2.5, 4.6);   // snout top
+      s.lineTo(2.5, 4.3);   // jaw line
+      s.lineTo(1.8, 4.2);   // back of jaw
+      s.lineTo(1.5, 4.0);   // throat
+      s.lineTo(1.0, 3.6);   // chest
+      s.lineTo(1.2, 3.3);   // arm
+      s.lineTo(1.0, 3.1);   // arm tip
+      s.lineTo(0.8, 3.2);   // under arm
+      s.lineTo(0.6, 2.8);   // belly top
+      s.lineTo(0.7, 2.2);   // belly
+      s.lineTo(1.0, 2.0);   // right leg top
+      s.lineTo(1.0, 0);     // right foot
+      s.lineTo(0.7, 0);     // right foot inner
+      s.lineTo(0.7, 1.8);   // right leg inner
+      s.lineTo(0.3, 1.9);   // crotch
+      s.lineTo(0.3, 0);     // left foot inner
+      s.closePath();
+      return s;
+    }
+
+    function makeTriceratopsShape() {
+      const s = new THREE.Shape();
+      s.moveTo(0, 0);
+      s.lineTo(0, 1.6);
+      s.lineTo(-0.4, 2.0);
+      s.lineTo(-1.5, 1.8);
+      s.lineTo(-2.2, 2.0);
+      s.lineTo(-1.6, 2.3);
+      s.lineTo(-0.4, 2.5);
+      s.lineTo(0.0, 2.8);
+      s.lineTo(0.3, 3.0);
+      s.lineTo(0.8, 3.2);  // frill start
+      s.lineTo(1.0, 3.6);  // frill top
+      s.lineTo(1.4, 3.8);
+      s.lineTo(1.8, 3.6);
+      s.lineTo(2.0, 3.2);  // frill end
+      s.lineTo(2.2, 2.9);  // head top
+      s.lineTo(2.8, 2.8);  // horn tip area
+      s.lineTo(2.6, 2.5);
+      s.lineTo(2.3, 2.5);  // face
+      s.lineTo(2.5, 2.3);  // nose horn
+      s.lineTo(2.3, 2.2);
+      s.lineTo(2.0, 2.2);  // mouth
+      s.lineTo(1.8, 2.0);  // jaw
+      s.lineTo(1.5, 2.0);  // throat
+      s.lineTo(1.2, 1.8);
+      s.lineTo(1.2, 1.6);
+      s.lineTo(1.4, 0);    // right front foot
+      s.lineTo(1.1, 0);
+      s.lineTo(0.9, 1.5);
+      s.lineTo(0.5, 1.5);
+      s.lineTo(0.3, 0);
+      s.closePath();
+      return s;
+    }
+
+    function makeStegosaurusShape() {
+      const s = new THREE.Shape();
+      s.moveTo(0, 0);
+      s.lineTo(0, 1.4);
+      s.lineTo(-0.5, 1.8);
+      // Tail with spikes
+      s.lineTo(-1.5, 2.0);
+      s.lineTo(-2.0, 2.4);  // spike
+      s.lineTo(-1.8, 2.0);
+      s.lineTo(-2.3, 2.2);  // spike
+      s.lineTo(-2.0, 1.8);
+      s.lineTo(-0.5, 2.0);
+      // Back with plates
+      s.lineTo(-0.3, 2.2);
+      s.lineTo(-0.1, 2.8);  // plate
+      s.lineTo(0.1, 2.2);
+      s.lineTo(0.3, 3.0);   // plate
+      s.lineTo(0.5, 2.2);
+      s.lineTo(0.7, 3.1);   // plate (tallest)
+      s.lineTo(0.9, 2.2);
+      s.lineTo(1.1, 2.9);   // plate
+      s.lineTo(1.3, 2.1);
+      s.lineTo(1.5, 2.6);   // plate
+      s.lineTo(1.7, 2.0);
+      // Head
+      s.lineTo(2.0, 1.9);
+      s.lineTo(2.4, 1.8);   // snout
+      s.lineTo(2.4, 1.6);
+      s.lineTo(2.0, 1.5);   // jaw
+      s.lineTo(1.7, 1.5);
+      s.lineTo(1.5, 1.4);
+      s.lineTo(1.5, 0);     // right front foot
+      s.lineTo(1.2, 0);
+      s.lineTo(1.2, 1.3);
+      s.lineTo(0.5, 1.3);
+      s.lineTo(0.3, 0);
+      s.closePath();
+      return s;
+    }
+
+    function makeBrachiosaurusShape() {
+      const s = new THREE.Shape();
+      s.moveTo(0, 0);
+      s.lineTo(0, 2.0);
+      s.lineTo(-0.4, 2.4);
+      s.lineTo(-1.5, 2.2);   // tail
+      s.lineTo(-2.0, 2.5);   // tail tip
+      s.lineTo(-1.6, 2.7);
+      s.lineTo(-0.4, 2.8);
+      s.lineTo(0.0, 3.0);
+      s.lineTo(0.3, 3.4);    // shoulder
+      s.lineTo(0.5, 4.0);    // neck start
+      s.lineTo(0.6, 4.8);
+      s.lineTo(0.7, 5.5);    // neck mid
+      s.lineTo(0.8, 6.0);
+      s.lineTo(1.0, 6.4);    // head top
+      s.lineTo(1.4, 6.5);    // head crest
+      s.lineTo(1.7, 6.3);
+      s.lineTo(1.8, 6.0);    // snout
+      s.lineTo(1.7, 5.8);    // jaw
+      s.lineTo(1.3, 5.8);
+      s.lineTo(1.1, 5.9);    // throat
+      s.lineTo(1.0, 5.5);
+      s.lineTo(0.9, 4.8);    // neck underside
+      s.lineTo(0.8, 4.0);
+      s.lineTo(0.8, 3.4);
+      s.lineTo(1.0, 2.8);    // chest
+      s.lineTo(1.2, 2.2);
+      s.lineTo(1.2, 0);      // right front foot
+      s.lineTo(0.9, 0);
+      s.lineTo(0.9, 2.0);
+      s.lineTo(0.4, 2.0);
+      s.lineTo(0.3, 0);
+      s.closePath();
+      return s;
+    }
+
+    const DINO_SHAPES = {
+      trex: makeTrexShape(),
+      triceratops: makeTriceratopsShape(),
+      stegosaurus: makeStegosaurusShape(),
+      brachiosaurus: makeBrachiosaurusShape(),
+    };
+
+    // Scale factors per species (how tall in scene units)
+    const DINO_SCALES = {
+      trex: 1.0,
+      triceratops: 0.95,
+      stegosaurus: 0.85,
+      brachiosaurus: 1.1,
+    };
+
+    const DINO_SPEEDS = {
+      trex: 1.2,
+      triceratops: 0.9,
+      stegosaurus: 0.7,
+      brachiosaurus: 0.6,
+    };
+
+    // ===================================================================
+    // CUSTOM UV GENERATOR for ExtrudeGeometry
+    // ===================================================================
+    // Maps shape coords to 0-1 UV range based on bounding box
+    function makeUVGenerator(shape) {
+      const pts = shape.getPoints();
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const p of pts) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      const rangeX = maxX - minX || 1;
+      const rangeY = maxY - minY || 1;
+
+      return {
+        generateTopUV(geometry, vertices, indexA, indexB, indexC) {
+          const ax = vertices[indexA * 3], ay = vertices[indexA * 3 + 1];
+          const bx = vertices[indexB * 3], by = vertices[indexB * 3 + 1];
+          const cx = vertices[indexC * 3], cy = vertices[indexC * 3 + 1];
+          return [
+            new THREE.Vector2((ax - minX) / rangeX, (ay - minY) / rangeY),
+            new THREE.Vector2((bx - minX) / rangeX, (by - minY) / rangeY),
+            new THREE.Vector2((cx - minX) / rangeX, (cy - minY) / rangeY),
+          ];
+        },
+        generateSideWallUV(geometry, vertices, indexA, indexB, indexC, indexD) {
+          return [
+            new THREE.Vector2(0, 0),
+            new THREE.Vector2(1, 0),
+            new THREE.Vector2(1, 1),
+            new THREE.Vector2(0, 1),
+          ];
+        }
+      };
+    }
+
+    // ===================================================================
+    // TEXTURE LOADING
+    // ===================================================================
+    function loadDinoTexture(dataURI) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const w = img.width, h = img.height;
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          // Contrast boost (same S-curve as turtles)
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const d = imgData.data;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] < 10) continue;
+            for (let c = 0; c < 3; c++) {
+              let v = d[i + c] / 255;
+              v = v < 0.5
+                ? 0.5 * Math.pow(2 * v, 2.8)
+                : 1 - 0.5 * Math.pow(2 * (1 - v), 2.8);
+              d[i + c] = Math.round(v * 255);
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+
+          const tex = new THREE.CanvasTexture(canvas);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          resolve(tex);
+        };
+        img.src = dataURI;
+      });
+    }
+
+    // ===================================================================
+    // CREATE DINO 3D (wooden cutout)
+    // ===================================================================
+    async function createDino3D(serverData) {
+      const species = serverData.species || 'trex';
+      const shape = DINO_SHAPES[species] || DINO_SHAPES.trex;
+      const scale = DINO_SCALES[species] || 1.0;
+
+      const extrudeSettings = {
+        depth: 0.3,
+        bevelEnabled: false,
+        UVGenerator: makeUVGenerator(shape),
+      };
+
+      const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+
+      // Build materials
+      let frontBackMat;
+      if (serverData.imageData) {
+        const tex = await loadDinoTexture(serverData.imageData);
+        frontBackMat = new THREE.MeshStandardMaterial({
+          map: tex,
+          roughness: 0.6,
+          metalness: 0,
+          transparent: true,
+          side: THREE.DoubleSide,
+        });
+      } else {
+        frontBackMat = new THREE.MeshStandardMaterial({
+          color: 0x8BAA38,
+          roughness: 0.6,
+        });
+      }
+
+      const mesh = new THREE.Mesh(geometry, [frontBackMat, woodMat]);
+
+      // Center the mesh on its bounding box
+      geometry.computeBoundingBox();
+      const bb = geometry.boundingBox;
+      const cx = (bb.min.x + bb.max.x) / 2;
+      const cy = bb.min.y; // keep feet at origin
+      const cz = (bb.min.z + bb.max.z) / 2;
+      mesh.geometry.translate(-cx, -cy, -cz);
+
+      const group = new THREE.Group();
+      group.add(mesh);
+      group.scale.setScalar(scale);
+
+      // Shadow (dark ellipse on ground)
+      const shadowGeo = new THREE.CircleGeometry(1.2, 16);
+      const shadowMat = new THREE.MeshBasicMaterial({
+        color: 0x000000, transparent: true, opacity: 0.2, depthWrite: false
+      });
+      const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = -0.01 / scale; // just above ground
+      group.add(shadow);
+
+      scene.add(group);
+
+      // Position on ground
+      const dinoHeight = (bb.max.y - bb.min.y) * scale;
+      group.position.set(
+        ARENA.xMin + Math.random() * (ARENA.xMax - ARENA.xMin),
+        GROUND_Y,
+        ARENA.zMin + Math.random() * (ARENA.zMax - ARENA.zMin)
+      );
+
+      // Create entry object
+      const entry = {
+        id: serverData.id,
+        name: serverData.name,
+        species,
+        group,
+        mesh,
+        shadow,
+        material: frontBackMat,
+        height: dinoHeight,
+        heading: Math.random() * Math.PI * 2,
+        targetHeading: Math.random() * Math.PI * 2,
+        smoothHeading: Math.random() * Math.PI * 2,
+        speed: (serverData.speed || 60) / 800,
+        wanderTimer: Math.random() * 5,
+        walkPhase: Math.random() * Math.PI * 2,
+        // Command state
+        boostTimer: 0,
+        boostTarget: null,
+        spinRemaining: 0,
+        partyHat: null,
+        partyHatTimer: 0,
+        // Label
+        label: null,
+        labelCreatedAt: performance.now(),
+        isHero: serverData.isHero || false,
+      };
+
+      // Name label
+      if (!serverData.isHero) {
+        const lbl = document.createElement('div');
+        lbl.className = 'dino-label';
+        lbl.textContent = serverData.name;
+        labelsDiv.appendChild(lbl);
+        entry.label = lbl;
+      }
+
+      return entry;
+    }
+
+    // ===================================================================
+    // PARTY HAT (replaces birthday cake)
+    // ===================================================================
+    function createPartyHat() {
+      const hatGroup = new THREE.Group();
+      // Cone hat
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(0.4, 1.0, 8),
+        new THREE.MeshStandardMaterial({ color: 0xff3388, roughness: 0.5 })
+      );
+      cone.position.y = 0.5;
+      hatGroup.add(cone);
+      // Pom-pom
+      const pom = new THREE.Mesh(
+        new THREE.SphereGeometry(0.15, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xffdd00, roughness: 0.3 })
+      );
+      pom.position.y = 1.05;
+      hatGroup.add(pom);
+      // Brim (torus)
+      const brim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.4, 0.05, 6, 12),
+        new THREE.MeshStandardMaterial({ color: 0xff3388, roughness: 0.5 })
+      );
+      brim.rotation.x = Math.PI / 2;
+      hatGroup.add(brim);
+      return hatGroup;
+    }
+
+    // ===================================================================
+    // MOVEMENT SYSTEM
+    // ===================================================================
+    function updateDinoMovement(entry, dt, time) {
+      const { group } = entry;
+      const speedMult = entry.boostTimer > 0 ? 3.0 : 1.0;
+
+      // --- Spin ---
+      if (entry.spinRemaining > 0) {
+        const spinSpeed = Math.PI * 3;
+        entry.heading += spinSpeed * dt;
+        entry.spinRemaining -= spinSpeed * dt;
+        if (entry.spinRemaining <= 0) entry.spinRemaining = 0;
+      }
+
+      // --- Come closer ---
+      if (entry.boostTimer > 0) {
+        entry.boostTimer -= dt;
+        const tx = entry.boostTarget.x;
+        const tz = entry.boostTarget.z;
+        const dx = tx - group.position.x;
+        const dz = tz - group.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist > 0.5) {
+          entry.targetHeading = Math.atan2(dx, dz);
+        }
+      }
+
+      // --- Wander ---
+      entry.wanderTimer -= dt;
+      if (entry.wanderTimer <= 0) {
+        entry.targetHeading += (Math.random() - 0.5) * 1.5;
+        entry.wanderTimer = 4 + Math.random() * 4;
+      }
+
+      // --- Wall avoidance ---
+      const margin = 2;
+      const px = group.position.x;
+      const pz = group.position.z;
+      let steerX = 0, steerZ = 0;
+      if (px < ARENA.xMin + margin) steerX += 1 - (px - ARENA.xMin) / margin;
+      if (px > ARENA.xMax - margin) steerX -= 1 - (ARENA.xMax - px) / margin;
+      if (pz < ARENA.zMin + margin) steerZ += 1 - (pz - ARENA.zMin) / margin;
+      if (pz > ARENA.zMax - margin) steerZ -= 1 - (ARENA.zMax - pz) / margin;
+      if (steerX || steerZ) {
+        entry.targetHeading = Math.atan2(steerX, steerZ);
+      }
+
+      // --- Smooth heading ---
+      let diff = entry.targetHeading - entry.smoothHeading;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      entry.smoothHeading += diff * Math.min(1, dt * 2);
+
+      let diff2 = entry.smoothHeading - entry.heading;
+      while (diff2 > Math.PI) diff2 -= Math.PI * 2;
+      while (diff2 < -Math.PI) diff2 += Math.PI * 2;
+      if (entry.spinRemaining <= 0) {
+        entry.heading += diff2 * Math.min(1, dt * 3);
+      }
+
+      // --- Move forward ---
+      const moveSpeed = entry.speed * speedMult;
+      group.position.x += Math.sin(entry.heading) * moveSpeed * dt;
+      group.position.z += Math.cos(entry.heading) * moveSpeed * dt;
+
+      // Keep on ground
+      group.position.y = GROUND_Y;
+
+      // --- Apply rotation ---
+      group.rotation.y = entry.heading;
+
+      // --- Walking animation (wooden toy march) ---
+      entry.walkPhase += dt * (3 + moveSpeed * 5);
+      const rock = Math.sin(entry.walkPhase) * 0.05;  // forward/back lean
+      const sway = Math.sin(entry.walkPhase * 0.5) * 0.03; // side sway
+      const bob = Math.abs(Math.sin(entry.walkPhase)) * 0.06; // bounce
+      group.rotation.x = rock;
+      group.rotation.z = sway;
+      group.position.y = GROUND_Y + bob;
+
+      // --- Party hat timer ---
+      if (entry.partyHat && entry.partyHatTimer > 0) {
+        entry.partyHatTimer -= dt;
+        if (entry.partyHatTimer <= 0) {
+          entry.group.remove(entry.partyHat);
+          entry.partyHat = null;
+        }
+      }
+    }
+
+    // ===================================================================
+    // ENVIRONMENT
+    // ===================================================================
+
+    // --- Ground plane ---
+    function buildGround() {
+      const gw = 512, gh = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = gw; canvas.height = gh;
+      const ctx = canvas.getContext('2d');
+
+      // Gradient: green near camera → brown far
+      const grad = ctx.createLinearGradient(0, 0, 0, gh);
+      grad.addColorStop(0, '#8B7355');  // far (brown/dirt)
+      grad.addColorStop(0.5, '#6B8E23'); // mid (olive)
+      grad.addColorStop(1, '#4a7a2e');  // near (green)
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, gw, gh);
+
+      // Grass speckle
+      for (let i = 0; i < 800; i++) {
+        const x = Math.random() * gw;
+        const y = Math.random() * gh;
+        const green = 80 + Math.random() * 80;
+        ctx.fillStyle = `rgba(${30 + Math.random() * 40},${green},${20 + Math.random() * 30},0.4)`;
+        ctx.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 3);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.MeshStandardMaterial({
+        map: tex, roughness: 0.95, metalness: 0,
+      });
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(50, 35), mat);
+      plane.rotation.x = -Math.PI / 2;
+      plane.position.set(0, GROUND_Y - 0.05, 5);
+      scene.add(plane);
+    }
+    buildGround();
+
+    // --- Rocks ---
+    function addRocks() {
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x888080, roughness: 0.9 });
+      const positions = [
+        [-8, 0.3, 3], [10, 0.25, -2], [-5, 0.35, 10], [7, 0.2, 8],
+        [2, 0.3, -4], [-10, 0.25, 7], [11, 0.3, 12],
+      ];
+      for (const [x, s, z] of positions) {
+        const rock = new THREE.Mesh(
+          new THREE.SphereGeometry(s + Math.random() * 0.3, 6, 5),
+          rockMat
+        );
+        rock.position.set(x, GROUND_Y + s * 0.3, z);
+        rock.scale.set(1 + Math.random() * 0.5, 0.5 + Math.random() * 0.5, 1 + Math.random() * 0.5);
+        scene.add(rock);
+      }
+    }
+    addRocks();
+
+    // --- Trees ---
+    function createTree(x, z, height, canopyType) {
+      const tree = new THREE.Group();
+      // Trunk
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.15, 0.25, height, 6),
+        new THREE.MeshStandardMaterial({ color: 0x6B4226, roughness: 0.9 })
+      );
+      trunk.position.y = height / 2;
+      tree.add(trunk);
+
+      if (canopyType === 'pine') {
+        // Pine tree — stacked cones
+        for (let i = 0; i < 3; i++) {
+          const cone = new THREE.Mesh(
+            new THREE.ConeGeometry(1.2 - i * 0.3, 1.5 - i * 0.2, 7),
+            new THREE.MeshStandardMaterial({ color: 0x2d5a1e, roughness: 0.8 })
+          );
+          cone.position.y = height * 0.6 + i * 0.8;
+          tree.add(cone);
+        }
+      } else {
+        // Round canopy
+        const canopy = new THREE.Mesh(
+          new THREE.SphereGeometry(1.0 + Math.random() * 0.5, 7, 6),
+          new THREE.MeshStandardMaterial({ color: 0x3a7a20, roughness: 0.8 })
+        );
+        canopy.position.y = height + 0.5;
+        canopy.scale.y = 0.75;
+        tree.add(canopy);
+      }
+
+      tree.position.set(x, GROUND_Y, z);
+      scene.add(tree);
+    }
+
+    // Place trees around edges (not blocking center view)
+    createTree(-11, 2, 3.0, 'pine');
+    createTree(-9, -4, 2.5, 'round');
+    createTree(11, 0, 2.8, 'pine');
+    createTree(9, -5, 3.2, 'round');
+    createTree(-7, 13, 2.5, 'pine');
+    createTree(8, 14, 2.8, 'round');
+    createTree(-12, 8, 3.5, 'pine');
+    createTree(12, 6, 2.0, 'round');
+
+    // --- Volcano ---
+    function buildVolcano() {
+      const volcGroup = new THREE.Group();
+      // Main cone
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(6, 10, 12),
+        new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.9 })
+      );
+      cone.position.y = 5;
+      volcGroup.add(cone);
+
+      // Crater (dark top)
+      const crater = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 1.8, 1.0, 10),
+        new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.95 })
+      );
+      crater.position.y = 9.8;
+      volcGroup.add(crater);
+
+      // Lava glow
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 8, 6),
+        new THREE.MeshStandardMaterial({
+          color: 0xff4400, emissive: 0xff4400, emissiveIntensity: 2.0,
+          transparent: true, opacity: 0.6,
+        })
+      );
+      glow.position.y = 10;
+      volcGroup.add(glow);
+
+      // Point light for lava glow
+      const lavaLight = new THREE.PointLight(0xff6600, 1.5, 20);
+      lavaLight.position.y = 10;
+      volcGroup.add(lavaLight);
+
+      volcGroup.position.set(-10, GROUND_Y, -6);
+      scene.add(volcGroup);
+      return { glow, lavaLight };
+    }
+    const volcano = buildVolcano();
+
+    // --- Smoke particles from volcano ---
+    const SMOKE_COUNT = 30;
+    const smokePositions = new Float32Array(SMOKE_COUNT * 3);
+    for (let i = 0; i < SMOKE_COUNT; i++) {
+      smokePositions[i * 3] = -10 + (Math.random() - 0.5) * 2;
+      smokePositions[i * 3 + 1] = GROUND_Y + 10 + Math.random() * 5;
+      smokePositions[i * 3 + 2] = -6 + (Math.random() - 0.5) * 2;
+    }
+    const smokeGeo = new THREE.BufferGeometry();
+    smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePositions, 3));
+    const smokeMat = new THREE.PointsMaterial({
+      color: 0x888888, size: 0.4, transparent: true, opacity: 0.3, depthWrite: false
+    });
+    const smoke = new THREE.Points(smokeGeo, smokeMat);
+    scene.add(smoke);
+
+    // --- Dust/pollen particles ---
+    const DUST_COUNT = 40;
+    const dustPositions = new Float32Array(DUST_COUNT * 3);
+    for (let i = 0; i < DUST_COUNT; i++) {
+      dustPositions[i * 3] = (Math.random() - 0.5) * 30;
+      dustPositions[i * 3 + 1] = GROUND_Y + Math.random() * 10;
+      dustPositions[i * 3 + 2] = (Math.random() - 0.5) * 25;
+    }
+    const dustGeo = new THREE.BufferGeometry();
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+    const dustMat = new THREE.PointsMaterial({
+      color: 0xddcc88, size: 0.15, transparent: true, opacity: 0.4, depthWrite: false
+    });
+    const dust = new THREE.Points(dustGeo, dustMat);
+    scene.add(dust);
+
+    // --- Pterodactyls (ambient flying creatures) ---
+    const pterodactyls = [];
+    function createPterodactyl() {
+      const ptero = new THREE.Group();
+      // Body
+      const body = new THREE.Mesh(
+        new THREE.ConeGeometry(0.15, 0.8, 4),
+        new THREE.MeshStandardMaterial({ color: 0x6a5a40, roughness: 0.7 })
+      );
+      body.rotation.x = Math.PI / 2;
+      ptero.add(body);
+
+      // Wings (flat triangles)
+      const wingGeo = new THREE.BufferGeometry();
+      const verts = new Float32Array([
+        0, 0, 0,  -1.5, 0, -0.3,  -0.3, 0, -0.5,
+      ]);
+      wingGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+      wingGeo.computeVertexNormals();
+      const wingMat = new THREE.MeshStandardMaterial({
+        color: 0x7a6a50, roughness: 0.7, side: THREE.DoubleSide
+      });
+      const leftWing = new THREE.Mesh(wingGeo, wingMat);
+      ptero.add(leftWing);
+      const rightWing = new THREE.Mesh(wingGeo, wingMat);
+      rightWing.scale.x = -1;
+      ptero.add(rightWing);
+
+      // Head
+      const head = new THREE.Mesh(
+        new THREE.ConeGeometry(0.08, 0.3, 4),
+        new THREE.MeshStandardMaterial({ color: 0x6a5a40, roughness: 0.7 })
+      );
+      head.rotation.x = Math.PI / 2;
+      head.position.z = -0.5;
+      head.position.y = 0.05;
+      ptero.add(head);
+
+      ptero.scale.setScalar(0.6 + Math.random() * 0.3);
+      scene.add(ptero);
+
+      return {
+        group: ptero,
+        heading: Math.random() * Math.PI * 2,
+        targetHeading: Math.random() * Math.PI * 2,
+        speed: 2 + Math.random() * 2,
+        wingPhase: Math.random() * Math.PI * 2,
+        wanderTimer: Math.random() * 3,
+        leftWing,
+        rightWing,
+      };
+    }
+
+    for (let i = 0; i < 5; i++) {
+      const p = createPterodactyl();
+      p.group.position.set(
+        (Math.random() - 0.5) * 20,
+        GROUND_Y + 8 + Math.random() * 5,
+        (Math.random() - 0.5) * 20
+      );
+      pterodactyls.push(p);
+    }
+
+    function updatePterodactyls(dt, time) {
+      for (const p of pterodactyls) {
+        p.wanderTimer -= dt;
+        if (p.wanderTimer <= 0) {
+          p.targetHeading += (Math.random() - 0.5) * 2;
+          p.wanderTimer = 2 + Math.random() * 4;
+        }
+
+        // Smooth heading
+        let diff = p.targetHeading - p.heading;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        p.heading += diff * dt * 2;
+
+        // Move
+        p.group.position.x += Math.sin(p.heading) * p.speed * dt;
+        p.group.position.z += Math.cos(p.heading) * p.speed * dt;
+        p.group.position.y = GROUND_Y + 8 + Math.sin(time * 0.5 + p.wingPhase) * 2;
+        p.group.rotation.y = p.heading;
+
+        // Wing flap
+        p.wingPhase += dt * 6;
+        const flapAngle = Math.sin(p.wingPhase) * 0.4;
+        p.leftWing.rotation.z = flapAngle;
+        p.rightWing.rotation.z = -flapAngle;
+
+        // Wall avoidance (wrap around)
+        if (p.group.position.x < -18) p.group.position.x = 18;
+        if (p.group.position.x > 18) p.group.position.x = -18;
+        if (p.group.position.z < -15) p.group.position.z = 20;
+        if (p.group.position.z > 25) p.group.position.z = -15;
+      }
+    }
+
+    // --- Update particles ---
+    function updateParticles(dt, time) {
+      // Smoke rises from volcano
+      const sp = smokeGeo.attributes.position.array;
+      for (let i = 0; i < SMOKE_COUNT; i++) {
+        sp[i * 3 + 1] += dt * 1.5;
+        sp[i * 3] += Math.sin(time + i) * dt * 0.3;
+        if (sp[i * 3 + 1] > GROUND_Y + 18) {
+          sp[i * 3] = -10 + (Math.random() - 0.5) * 2;
+          sp[i * 3 + 1] = GROUND_Y + 10;
+          sp[i * 3 + 2] = -6 + (Math.random() - 0.5) * 2;
+        }
+      }
+      smokeGeo.attributes.position.needsUpdate = true;
+
+      // Dust drifts slowly
+      const dp = dustGeo.attributes.position.array;
+      for (let i = 0; i < DUST_COUNT; i++) {
+        dp[i * 3 + 1] += dt * 0.2;
+        dp[i * 3] += Math.sin(time * 0.3 + i * 1.7) * dt * 0.1;
+        if (dp[i * 3 + 1] > GROUND_Y + 12) {
+          dp[i * 3 + 1] = GROUND_Y + 0.5;
+        }
+      }
+      dustGeo.attributes.position.needsUpdate = true;
+
+      // Volcano glow pulse
+      volcano.glow.material.emissiveIntensity = 1.5 + Math.sin(time * 2) * 0.5;
+      volcano.lavaLight.intensity = 1.0 + Math.sin(time * 2.5) * 0.4;
+    }
+
+    // ===================================================================
+    // HERO DINO TEXTURE (procedural)
+    // ===================================================================
+    function createHeroTexture() {
+      const size = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Earthy gradient background
+      const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+      grad.addColorStop(0, '#8BAA38');
+      grad.addColorStop(0.5, '#6B8E23');
+      grad.addColorStop(1, '#5a7a1e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+
+      // Scale-like pattern
+      for (let y = 0; y < size; y += 30) {
+        for (let x = 0; x < size; x += 26) {
+          const offsetX = (Math.floor(y / 30) % 2) * 13;
+          ctx.beginPath();
+          ctx.arc(x + offsetX, y, 12, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(90,122,30,0.4)`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+
+      // Golden shimmer
+      const shimmer = ctx.createRadialGradient(size*0.4, size*0.3, 0, size/2, size/2, size/2);
+      shimmer.addColorStop(0, 'rgba(201,168,76,0.2)');
+      shimmer.addColorStop(1, 'rgba(201,168,76,0)');
+      ctx.fillStyle = shimmer;
+      ctx.fillRect(0, 0, size, size);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    // ===================================================================
+    // LABELS & PROJECTION
+    // ===================================================================
+    function projectToScreen(pos) {
+      const v = pos.clone().project(camera);
+      return {
+        x: (v.x * 0.5 + 0.5) * innerWidth,
+        y: (-v.y * 0.5 + 0.5) * innerHeight,
+      };
+    }
+
+    function updateLabels() {
+      for (const entry of dinoMap.values()) {
+        if (!entry.label) continue;
+        const headY = entry.height + 0.5;
+        const worldPos = new THREE.Vector3(
+          entry.group.position.x,
+          entry.group.position.y + headY,
+          entry.group.position.z
+        );
+        const screen = projectToScreen(worldPos);
+        entry.label.style.left = screen.x + 'px';
+        entry.label.style.top = (screen.y - 35) + 'px';
+
+        const age = (performance.now() - entry.labelCreatedAt) / 1000;
+        entry.label.style.opacity = Math.min(1, age);
+      }
+    }
+
+    function updateTitle() {
+      const heroEntry = dinoMap.get('hero-dino');
+      if (!heroEntry) return;
+      titleOpacity = Math.min(1, titleOpacity + 0.008);
+      titleLabel.style.opacity = titleOpacity;
+
+      const headY = heroEntry.height + 1.0;
+      const worldPos = new THREE.Vector3(
+        heroEntry.group.position.x,
+        heroEntry.group.position.y + headY,
+        heroEntry.group.position.z
+      );
+      const screen = projectToScreen(worldPos);
+      const fontSize = Math.min(48, innerWidth / 10);
+      titleLabel.style.fontSize = fontSize + 'px';
+      titleLabel.style.left = screen.x + 'px';
+      titleLabel.style.top = Math.max(40, screen.y - 40) + 'px';
+      titleLabel.style.transform = 'translateX(-50%)';
+    }
+
+    // ===================================================================
+    // COMMANDS
+    // ===================================================================
+    function handleCommand(entry, command) {
+      if (command === 'come_closer') {
+        entry.boostTimer = 8;
+        entry.boostTarget = {
+          x: 0,
+          z: ARENA.zMax - 0.5,
+        };
+      } else if (command === 'spin') {
+        entry.spinRemaining = Math.PI * 6; // 3 full rotations
+      } else if (command === 'party_hat') {
+        if (entry.partyHat) {
+          entry.group.remove(entry.partyHat);
+        }
+        const hat = createPartyHat();
+        const hatScale = 1 / (DINO_SCALES[entry.species] || 1);
+        hat.scale.setScalar(hatScale * 0.6);
+        hat.position.y = entry.height / (DINO_SCALES[entry.species] || 1) - 0.3;
+        entry.group.add(hat);
+        entry.partyHat = hat;
+        entry.partyHatTimer = 10;
+      }
+    }
+
+    // ===================================================================
+    // NETWORKING (polling + SSE)
+    // ===================================================================
+    async function pollDinos() {
+      if (!landscapeRunning) return;
+      try {
+        const knownIds = Array.from(dinoMap.keys()).join(',');
+        const res = await fetch(`/api/dinos?eventCode=${encodeURIComponent(eventCode)}&knownIds=${encodeURIComponent(knownIds)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const serverDinos = data.dinos || [];
+        const serverIds = new Set(serverDinos.map(d => d.id));
+
+        // Remove deleted dinos
+        for (const [id, entry] of dinoMap) {
+          if (!serverIds.has(id)) {
+            scene.remove(entry.group);
+            if (entry.label) entry.label.remove();
+            if (entry.material && entry.material.map) entry.material.map.dispose();
+            dinoMap.delete(id);
+          }
+        }
+
+        // Add new dinos, update existing
+        for (const d of serverDinos) {
+          if (dinoMap.has(d.id)) {
+            const entry = dinoMap.get(d.id);
+            if (d.name && d.name !== entry.name) {
+              entry.name = d.name;
+              if (entry.label) entry.label.textContent = d.name;
+            }
+          } else if (d.imageData) {
+            const entry = await createDino3D(d);
+            dinoMap.set(d.id, entry);
+
+            // Auto-showcase new dinos
+            if (dinoMap.size > 1 && !d.isHero) {
+              entry.boostTimer = 6;
+              entry.boostTarget = { x: 0, z: ARENA.zMax - 1 };
+            }
+          }
+
+          // Process commands
+          if (d.command && d.commandId && !processedCommands.has(d.commandId)) {
+            processedCommands.add(d.commandId);
+            const entry = dinoMap.get(d.id);
+            if (entry) handleCommand(entry, d.command);
+          }
+        }
+
+        // Keep processedCommands bounded
+        if (processedCommands.size > 200) {
+          const arr = Array.from(processedCommands);
+          for (let i = 0; i < 50; i++) processedCommands.delete(arr[i]);
+        }
+      } catch {}
+      pollTimer = setTimeout(pollDinos, 3000);
+    }
+
+    function connectSSE() {
+      const es = new EventSource(`/api/events?eventCode=${encodeURIComponent(eventCode)}`);
+      es.onmessage = (evt) => {
+        try {
+          const data = JSON.parse(evt.data);
+          if (data.commandId && !processedCommands.has(data.commandId)) {
+            processedCommands.add(data.commandId);
+            const entry = dinoMap.get(data.turtleId); // turtleId field name kept for compat
+            if (entry) handleCommand(entry, data.command);
+          }
+        } catch {}
+      };
+      es.addEventListener('delete', (evt) => {
+        try {
+          const data = JSON.parse(evt.data);
+          for (const id of (data.deleted || [])) {
+            const entry = dinoMap.get(id);
+            if (entry) {
+              scene.remove(entry.group);
+              if (entry.label) entry.label.remove();
+              if (entry.material && entry.material.map) entry.material.map.dispose();
+              dinoMap.delete(id);
+            }
+          }
+        } catch {}
+      });
+    }
+
+    // ===================================================================
+    // ANIMATION LOOP
+    // ===================================================================
+    let lastFrame = 0;
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      if (!lastFrame) { lastFrame = now; startTime = now / 1000; }
+      let dt = (now - lastFrame) / 1000;
+      if (dt > 0.1) dt = 0.1;
+      lastFrame = now;
+      const time = now / 1000 - startTime;
+
+      for (const entry of dinoMap.values()) {
+        updateDinoMovement(entry, dt, time);
+      }
+      updatePterodactyls(dt, time);
+      updateParticles(dt, time);
+      updateLabels();
+      updateTitle();
+
+      renderer.render(scene, camera);
+    }
+
+    // ===================================================================
+    // CODE ENTRY & STARTUP
+    // ===================================================================
+    async function validateCode(code) {
+      try {
+        const res = await fetch(`/api/dinos?eventCode=${encodeURIComponent(code)}&knownIds=`);
+        return res.status;
+      } catch { return 0; }
+    }
+
+    async function handleCodeSubmit() {
+      const code = codeInput.value.trim();
+      if (!code) return;
+      codeError.textContent = '';
+      codeSubmit.disabled = true;
+      codeSubmit.textContent = '...';
+
+      const status = await validateCode(code);
+      if (status === 200) {
+        eventCode = code;
+        localStorage.setItem('dinoEventCode', code);
+        overlay.style.display = 'none';
+        startLandscape();
+      } else if (status === 403) {
+        codeError.textContent = 'Wrong code. Try again!';
+      } else if (status === 429) {
+        codeError.textContent = 'Too many attempts. Wait a moment.';
+      } else {
+        codeError.textContent = 'Connection error.';
+      }
+      codeSubmit.disabled = false;
+      codeSubmit.textContent = 'Enter';
+    }
+
+    function startLandscape() {
+      if (landscapeRunning) return;
+      landscapeRunning = true;
+      startTime = performance.now() / 1000;
+      pollDinos();
+      connectSSE();
+      requestAnimationFrame(animate);
+    }
+
+    codeSubmit.addEventListener('click', handleCodeSubmit);
+    codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleCodeSubmit(); });
+
+    // Auto-enter if code saved
+    const savedCode = localStorage.getItem('dinoEventCode');
+    if (savedCode) {
+      validateCode(savedCode).then(status => {
+        if (status === 200) {
+          eventCode = savedCode;
+          overlay.style.display = 'none';
+          startLandscape();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

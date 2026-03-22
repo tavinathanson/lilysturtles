@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Admin — Lily's Turtles</title>
+  <title>Admin</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -198,8 +198,8 @@
 </head>
 <body>
   <div class="card">
-    <h1>Turtle Admin</h1>
-    <p class="subtitle">Selectively remove turtles from the aquarium.</p>
+    <h1 id="pageTitle">Turtle Admin</h1>
+    <p class="subtitle" id="pageSubtitle">Selectively remove turtles from the aquarium.</p>
 
     <div id="loadSection">
       <label for="eventCode">Event Code</label>
@@ -232,11 +232,26 @@
     const countLabel = document.getElementById('countLabel');
     const msg = document.getElementById('message');
 
+    // Mode detection: ?mode=dino switches to dino endpoints
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDino = urlParams.get('mode') === 'dino';
+    const apiList = isDino ? '/api/dinos' : '/api/turtles';
+    const apiDelete = isDino ? '/api/delete-dinos' : '/api/delete-turtles';
+    const listKey = isDino ? 'dinos' : 'turtles';
+    const entityName = isDino ? 'dinosaur' : 'turtle';
+    const storageKey = isDino ? 'dinoCode' : 'turtleCode';
+
+    if (isDino) {
+      document.getElementById('pageTitle').textContent = 'Dino Admin';
+      document.getElementById('pageSubtitle').textContent = 'Selectively remove dinosaurs from the landscape.';
+      document.title = 'Admin — Dinosaurs';
+    }
+
     let eventCode = '';
     let turtleList = [];
     const selected = new Set();
 
-    const stored = localStorage.getItem('turtleCode');
+    const stored = localStorage.getItem(storageKey);
     if (stored) eventCodeInput.value = stored;
 
     function showMsg(text, type) {
@@ -257,14 +272,14 @@
     function renderGrid() {
       grid.innerHTML = '';
       if (turtleList.length === 0) {
-        grid.innerHTML = '<div class="empty">No turtles in the aquarium.</div>';
+        grid.innerHTML = `<div class="empty">No ${entityName}s found.</div>`;
         countLabel.textContent = '';
         toggleSelect.style.display = 'none';
         updateDeleteBtn();
         return;
       }
       const deletable = turtleList.filter(t => !t.isHero);
-      countLabel.textContent = `${turtleList.length} turtle${turtleList.length !== 1 ? 's' : ''} (${deletable.length} deletable)`;
+      countLabel.textContent = `${turtleList.length} ${entityName}${turtleList.length !== 1 ? 's' : ''} (${deletable.length} deletable)`;
       toggleSelect.style.display = deletable.length > 0 ? '' : 'none';
 
       for (const t of turtleList) {
@@ -311,15 +326,15 @@
       loadBtn.disabled = true;
       loadBtn.textContent = 'Loading...';
       try {
-        const res = await fetch(`/api/turtles?eventCode=${encodeURIComponent(eventCode)}&knownIds=`);
+        const res = await fetch(`${apiList}?eventCode=${encodeURIComponent(eventCode)}&knownIds=`);
         const data = await res.json();
         if (!res.ok) {
-          showMsg(data.error || 'Failed to load turtles.', 'error');
+          showMsg(data.error || 'Failed to load.', 'error');
           loadBtn.disabled = false;
           loadBtn.textContent = 'Load Turtles';
           return;
         }
-        turtleList = data.turtles || [];
+        turtleList = data[listKey] || [];
         // Remove stale selections
         const validIds = new Set(turtleList.filter(t => !t.isHero).map(t => t.id));
         for (const id of selected) {
@@ -338,7 +353,7 @@
     loadBtn.addEventListener('click', () => {
       eventCode = eventCodeInput.value.trim();
       if (!eventCode) return;
-      localStorage.setItem('turtleCode', eventCode);
+      localStorage.setItem(storageKey, eventCode);
       loadTurtles();
     });
 
@@ -366,14 +381,14 @@
     deleteBtn.addEventListener('click', async () => {
       if (selected.size === 0) return;
       const n = selected.size;
-      if (!confirm(`Delete ${n} turtle${n !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+      if (!confirm(`Delete ${n} ${entityName}${n !== 1 ? 's' : ''}? This cannot be undone.`)) return;
 
       hideMsg();
       deleteBtn.disabled = true;
       deleteBtn.textContent = 'Deleting...';
 
       try {
-        const res = await fetch('/api/delete-turtles', {
+        const res = await fetch(apiDelete, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ eventCode, ids: Array.from(selected) }),
@@ -386,7 +401,7 @@
           return;
         }
         selected.clear();
-        showMsg(`Deleted ${data.deleted} turtle${data.deleted !== 1 ? 's' : ''}.`, 'success');
+        showMsg(`Deleted ${data.deleted} ${entityName}${data.deleted !== 1 ? 's' : ''}.`, 'success');
         await loadTurtles();
       } catch {
         showMsg('Network error. Please try again.', 'error');

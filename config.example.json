@@ -1,0 +1,12 @@
+{
+  "port": 3000,
+  "eventCode": "1234",
+  "turtles": {
+    "title": "Lily's Turtles",
+    "heroName": "Lily's Turtle"
+  },
+  "dinos": {
+    "title": "Ari's Dinosaurs",
+    "heroName": "Ari's Dinosaur"
+  }
+}
