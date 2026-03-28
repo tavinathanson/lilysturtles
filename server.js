@@ -105,36 +105,34 @@ async function generateHeroTurtle() {
 // --- Hero Dino Generation ---
 
 async function generateHeroDino() {
+  // This texture gets UV-mapped onto the body shape.
+  // The body shape bounding box maps to the full 200x200.
+  // We paint a green skin/scales texture that fills the whole area.
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-    <!-- Body -->
-    <ellipse cx="95" cy="130" rx="45" ry="35" fill="#6B8E23"/>
-    <ellipse cx="95" cy="125" rx="42" ry="32" fill="#7A9A2E"/>
-    <!-- Tail -->
-    <path d="M50 130 Q20 125 10 140 Q5 150 15 148 Q25 140 50 135" fill="#6B8E23"/>
-    <!-- Legs -->
-    <ellipse cx="75" cy="162" rx="10" ry="15" fill="#5A7A1E"/>
-    <ellipse cx="115" cy="162" rx="10" ry="15" fill="#5A7A1E"/>
-    <!-- Neck -->
-    <path d="M130 115 Q145 90 140 60" fill="#7A9A2E" stroke="#6B8E23" stroke-width="2"/>
-    <ellipse cx="135" cy="90" rx="12" ry="30" fill="#7A9A2E"/>
-    <!-- Head -->
-    <ellipse cx="145" cy="55" rx="28" ry="20" fill="#7A9A2E"/>
-    <ellipse cx="145" cy="52" rx="26" ry="18" fill="#8BAA38"/>
-    <!-- Eye -->
-    <circle cx="155" cy="48" r="6" fill="white"/>
-    <circle cx="157" cy="47" r="3.5" fill="#2D2D2D"/>
-    <circle cx="158" cy="46" r="1.2" fill="white"/>
-    <!-- Jaw -->
-    <path d="M160 60 Q170 65 168 58 Q172 62 165 67 Q155 70 150 65" fill="#6B8E23"/>
-    <!-- Teeth -->
-    <path d="M162 58 L163 62 L164 58 L166 62 L167 59" fill="white" stroke="white" stroke-width="0.5"/>
-    <!-- Arms -->
-    <path d="M125 120 Q135 112 132 105" fill="none" stroke="#6B8E23" stroke-width="4" stroke-linecap="round"/>
-    <path d="M132 105 L130 102 M132 105 L135 103" fill="none" stroke="#5A7A1E" stroke-width="2" stroke-linecap="round"/>
-    <!-- Back texture -->
-    <path d="M60 115 Q70 108 80 112 Q90 106 100 110 Q110 104 120 112" fill="none" stroke="#5A7A1E" stroke-width="2"/>
-    <!-- Earthy shimmer -->
-    <ellipse cx="95" cy="125" rx="30" ry="20" fill="rgba(180,160,80,0.15)"/>
+    <defs>
+      <radialGradient id="skin" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stop-color="#8BAA38"/>
+        <stop offset="50%" stop-color="#6B8E23"/>
+        <stop offset="100%" stop-color="#4a6e18"/>
+      </radialGradient>
+    </defs>
+    <!-- Full skin fill -->
+    <rect width="200" height="200" fill="url(#skin)"/>
+    <!-- Scale pattern rows -->
+    ${Array.from({length: 12}, (_, row) =>
+      Array.from({length: 10}, (_, col) => {
+        const ox = (row % 2) * 10;
+        const x = col * 20 + ox;
+        const y = row * 17;
+        return `<ellipse cx="${x}" cy="${y}" rx="8" ry="6" fill="none" stroke="rgba(74,110,24,0.4)" stroke-width="1.2"/>`;
+      }).join('')
+    ).join('')}
+    <!-- Belly lighter stripe -->
+    <rect x="0" y="130" width="200" height="70" fill="rgba(180,200,100,0.2)"/>
+    <!-- Back darker stripe -->
+    <rect x="0" y="0" width="200" height="40" fill="rgba(40,60,10,0.15)"/>
+    <!-- Subtle ridge bumps along back -->
+    <path d="M0 35 Q20 28 40 35 Q60 28 80 35 Q100 28 120 35 Q140 28 160 35 Q180 28 200 35" fill="none" stroke="rgba(50,70,15,0.3)" stroke-width="2.5"/>
   </svg>`;
 
   const pngBuffer = await sharp(Buffer.from(svg))

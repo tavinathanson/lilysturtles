@@ -131,71 +131,7 @@
 <!-- T-Rex (1 dot) -->
 <div class="page" id="page-trex">
   <div class="page-title">Color the T-Rex!</div>
-  <svg class="dino-svg" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
-    <!-- Dot indicator: 1 dot = T-Rex -->
-    <rect x="590" y="10" width="80" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/>
-    <circle cx="630" cy="30" r="10" fill="#000"/>
-
-    <!-- T-Rex silhouette — side profile facing right -->
-    <path d="
-      M 180 520
-      L 180 480
-      Q 170 440 180 400
-      Q 185 360 200 340
-      L 200 300
-      Q 190 260 200 220
-      Q 210 180 240 160
-      Q 270 140 300 130
-      L 320 125
-      Q 340 118 360 110
-      Q 400 95 440 90
-      Q 480 88 500 95
-      Q 520 100 530 115
-      Q 540 130 535 145
-      L 520 150
-      Q 530 155 535 165
-      Q 540 178 530 188
-      Q 520 195 505 190
-      L 490 185
-      Q 470 188 460 195
-      Q 440 210 430 230
-      Q 420 250 415 270
-      Q 410 290 400 310
-      L 380 320
-      Q 395 330 400 345
-      L 390 355
-      L 375 348
-      Q 360 350 350 360
-      Q 340 380 340 400
-      Q 342 430 350 460
-      L 360 480
-      L 360 520
-      L 330 520
-      L 325 490
-      Q 310 460 300 440
-      Q 280 420 260 430
-      Q 250 440 250 460
-      L 255 480
-      L 255 520
-      L 225 520
-      L 222 490
-      Q 220 470 215 460
-      Q 200 450 190 460
-      Q 185 480 185 500
-      L 185 520
-      Z
-    " fill="white" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
-
-    <!-- Eye -->
-    <circle cx="490" cy="112" r="10" fill="white" stroke="#000" stroke-width="3"/>
-    <circle cx="493" cy="110" r="5" fill="#000"/>
-
-    <!-- Teeth hints on jaw -->
-    <path d="M505 155 L510 162 L515 155 L520 162 L525 155" fill="none" stroke="#000" stroke-width="2.5"/>
-
-    <!-- Tiny arm -->
-    <path d="M390 260 Q 400 270 395 280 L 388 278 M395 280 L 400 285" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>
-  </svg>
+  <svg class="dino-svg" id="svg-trex" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg"></svg>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -205,87 +141,7 @@
 <!-- Triceratops (2 dots) -->
 <div class="page hidden" id="page-triceratops">
   <div class="page-title">Color the Triceratops!</div>
-  <svg class="dino-svg" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
-    <!-- Dot indicator: 2 dots = Triceratops -->
-    <rect x="570" y="10" width="100" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/>
-    <circle cx="600" cy="30" r="10" fill="#000"/>
-    <circle cx="640" cy="30" r="10" fill="#000"/>
-
-    <!-- Triceratops silhouette — side profile facing right -->
-    <path d="
-      M 120 500
-      L 120 460
-      Q 115 430 120 400
-      Q 130 370 150 350
-      Q 170 330 190 320
-      Q 200 310 210 295
-      Q 220 275 225 260
-      Q 225 240 220 225
-      Q 210 210 195 200
-      Q 175 195 160 200
-      Q 145 210 140 225
-      Q 130 235 120 230
-      Q 115 220 120 210
-      Q 130 195 150 185
-      Q 170 178 190 180
-      Q 215 178 235 168
-      Q 260 155 280 150
-      Q 310 145 340 148
-      Q 370 150 395 160
-      Q 420 170 440 185
-      Q 455 195 465 210
-      Q 478 215 490 210
-      Q 500 200 510 205
-      Q 515 215 508 225
-      Q 500 230 490 228
-      Q 480 230 475 240
-      Q 470 255 460 265
-      Q 445 280 425 290
-      Q 410 295 400 305
-      Q 390 320 385 340
-      Q 382 360 385 380
-      Q 388 400 395 420
-      L 400 450
-      L 400 500
-      L 370 500
-      L 365 470
-      Q 358 445 345 430
-      Q 320 415 295 420
-      Q 275 425 260 440
-      Q 250 455 250 470
-      L 252 500
-      L 222 500
-      L 218 470
-      Q 210 445 195 435
-      Q 175 428 160 435
-      Q 148 445 145 465
-      L 145 500
-      Z
-    " fill="white" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
-
-    <!-- Frill scalloped edge -->
-    <path d="
-      M 195 200
-      Q 205 185 220 182
-      Q 235 178 250 170
-      Q 265 162 280 158
-      Q 300 152 320 150
-      Q 340 150 360 155
-      Q 380 160 395 168
-      Q 410 175 425 185
-      Q 440 195 450 210
-    " fill="none" stroke="#000" stroke-width="4" stroke-dasharray="8,6"/>
-
-    <!-- Horns -->
-    <line x1="350" y1="170" x2="370" y2="120" stroke="#000" stroke-width="6" stroke-linecap="round"/>
-    <line x1="300" y1="168" x2="280" y2="115" stroke="#000" stroke-width="6" stroke-linecap="round"/>
-    <!-- Nose horn -->
-    <line x1="145" y1="225" x2="125" y2="195" stroke="#000" stroke-width="5" stroke-linecap="round"/>
-
-    <!-- Eye -->
-    <circle cx="410" cy="220" r="10" fill="white" stroke="#000" stroke-width="3"/>
-    <circle cx="413" cy="218" r="5" fill="#000"/>
-  </svg>
+  <svg class="dino-svg" id="svg-triceratops" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg"></svg>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -295,83 +151,7 @@
 <!-- Stegosaurus (3 dots) -->
 <div class="page hidden" id="page-stegosaurus">
   <div class="page-title">Color the Stegosaurus!</div>
-  <svg class="dino-svg" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
-    <!-- Dot indicator: 3 dots = Stegosaurus -->
-    <rect x="550" y="10" width="120" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/>
-    <circle cx="580" cy="30" r="10" fill="#000"/>
-    <circle cx="610" cy="30" r="10" fill="#000"/>
-    <circle cx="640" cy="30" r="10" fill="#000"/>
-
-    <!-- Stegosaurus silhouette — side profile facing right -->
-    <path d="
-      M 100 490
-      L 100 450
-      Q 105 420 115 400
-      Q 130 375 150 360
-      Q 170 348 190 340
-      Q 210 335 230 332
-      Q 260 330 290 332
-      Q 320 335 350 340
-      Q 380 346 400 355
-      Q 420 365 435 380
-      Q 445 395 448 410
-      Q 450 425 445 440
-      Q 440 450 430 458
-      Q 420 462 410 460
-      L 400 455
-      Q 395 462 398 475
-      L 398 490
-      L 370 490
-      L 368 470
-      Q 365 450 355 440
-      Q 340 432 320 435
-      Q 300 440 290 450
-      L 285 470
-      L 285 490
-      L 258 490
-      L 255 470
-      Q 248 445 235 435
-      Q 215 425 195 430
-      Q 180 438 175 455
-      L 172 470
-      L 170 490
-      L 140 490
-      L 138 470
-      Q 132 445 120 435
-      Q 110 430 105 440
-      L 102 460
-      L 102 490
-      Z
-    " fill="white" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
-
-    <!-- Head (small, low) -->
-    <path d="
-      M 430 458
-      Q 445 445 460 440
-      Q 480 436 500 440
-      Q 515 445 520 455
-      Q 522 465 515 470
-      Q 505 472 495 468
-      L 480 465
-      Q 460 465 445 462
-    " fill="white" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
-
-    <!-- Eye -->
-    <circle cx="498" cy="452" r="6" fill="white" stroke="#000" stroke-width="2.5"/>
-    <circle cx="500" cy="451" r="3" fill="#000"/>
-
-    <!-- Back plates (diamond shapes along the spine) -->
-    <polygon points="180,330 195,270 210,330" fill="white" stroke="#000" stroke-width="5"/>
-    <polygon points="220,328 240,255 260,328" fill="white" stroke="#000" stroke-width="5"/>
-    <polygon points="265,330 290,245 315,330" fill="white" stroke="#000" stroke-width="5"/>
-    <polygon points="320,332 345,260 370,338" fill="white" stroke="#000" stroke-width="5"/>
-    <polygon points="375,340 395,285 415,355" fill="white" stroke="#000" stroke-width="5"/>
-
-    <!-- Tail spikes -->
-    <line x1="110" y1="400" x2="70" y2="360" stroke="#000" stroke-width="6" stroke-linecap="round"/>
-    <line x1="120" y1="385" x2="85" y2="340" stroke="#000" stroke-width="6" stroke-linecap="round"/>
-    <line x1="105" y1="415" x2="60" y2="390" stroke="#000" stroke-width="5" stroke-linecap="round"/>
-  </svg>
+  <svg class="dino-svg" id="svg-stegosaurus" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg"></svg>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -381,93 +161,7 @@
 <!-- Brachiosaurus (4 dots) -->
 <div class="page hidden" id="page-brachiosaurus">
   <div class="page-title">Color the Brachiosaurus!</div>
-  <svg class="dino-svg" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg">
-    <!-- Dot indicator: 4 dots = Brachiosaurus -->
-    <rect x="530" y="10" width="140" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/>
-    <circle cx="560" cy="30" r="10" fill="#000"/>
-    <circle cx="590" cy="30" r="10" fill="#000"/>
-    <circle cx="620" cy="30" r="10" fill="#000"/>
-    <circle cx="650" cy="30" r="10" fill="#000"/>
-
-    <!-- Brachiosaurus silhouette — side profile, long neck -->
-    <path d="
-      M 420 540
-      L 420 500
-      Q 418 470 420 445
-      Q 425 415 435 395
-      Q 445 378 460 368
-      Q 478 358 495 355
-      Q 510 354 520 360
-      Q 528 368 525 380
-      Q 520 390 510 395
-      Q 498 398 485 395
-      Q 470 392 458 400
-      Q 448 410 445 430
-      L 443 460
-      L 443 500
-      L 443 540
-      L 420 540
-      Z
-      M 280 540
-      L 280 500
-      Q 278 470 280 440
-      Q 285 410 298 390
-      Q 310 375 325 365
-      Q 340 358 355 358
-      Q 370 360 378 370
-      Q 385 382 380 395
-      Q 372 405 360 408
-      Q 345 410 332 405
-      Q 318 402 308 412
-      Q 300 425 298 445
-      L 298 480
-      L 298 540
-      L 280 540
-      Z
-    " fill="white" stroke="#000" stroke-width="7" stroke-linejoin="round"/>
-
-    <!-- Body -->
-    <ellipse cx="365" cy="370" rx="120" ry="75" fill="white" stroke="#000" stroke-width="8"/>
-
-    <!-- Tail -->
-    <path d="
-      M 245 370
-      Q 210 365 180 375
-      Q 150 388 130 395
-      Q 100 405 80 400
-      Q 65 395 60 385
-    " fill="none" stroke="#000" stroke-width="8" stroke-linecap="round"/>
-
-    <!-- Neck -->
-    <path d="
-      M 440 340
-      Q 455 300 465 260
-      Q 475 220 478 180
-      Q 480 150 475 120
-      Q 470 100 460 90
-    " fill="none" stroke="#000" stroke-width="28" stroke-linecap="round"/>
-    <!-- Neck interior (white fill) -->
-    <path d="
-      M 440 340
-      Q 455 300 465 260
-      Q 475 220 478 180
-      Q 480 150 475 120
-      Q 470 100 460 90
-    " fill="none" stroke="white" stroke-width="16" stroke-linecap="round"/>
-
-    <!-- Head -->
-    <ellipse cx="452" cy="82" rx="35" ry="22" fill="white" stroke="#000" stroke-width="6"/>
-
-    <!-- Eye -->
-    <circle cx="468" cy="76" r="7" fill="white" stroke="#000" stroke-width="2.5"/>
-    <circle cx="470" cy="75" r="3.5" fill="#000"/>
-
-    <!-- Nostril bump -->
-    <ellipse cx="430" cy="75" rx="8" ry="6" fill="none" stroke="#000" stroke-width="2.5"/>
-
-    <!-- Smile -->
-    <path d="M440 90 Q452 97 464 90" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/>
-  </svg>
+  <svg class="dino-svg" id="svg-brachiosaurus" viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg"></svg>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -475,10 +169,468 @@
 </div>
 
 <script>
+  // ---- ShapeRecorder: lightweight adapter replacing THREE.Shape ----
+  class ShapeRecorder {
+    constructor() { this.cmds = []; }
+    moveTo(x, y) { this.cmds.push('M ' + x + ' ' + y); }
+    lineTo(x, y) { this.cmds.push('L ' + x + ' ' + y); }
+    quadraticCurveTo(cx, cy, x, y) { this.cmds.push('Q ' + cx + ' ' + cy + ' ' + x + ' ' + y); }
+    bezierCurveTo(c1x, c1y, c2x, c2y, x, y) { this.cmds.push('C ' + c1x + ' ' + c1y + ' ' + c2x + ' ' + c2y + ' ' + x + ' ' + y); }
+    closePath() { this.cmds.push('Z'); }
+    toSVGPath() { return this.cmds.join(' '); }
+  }
+
+  // ---- Shape functions copied from live-dinos.html, using ShapeRecorder ----
+
+  function makeTrexBody() {
+    const s = new ShapeRecorder();
+    s.moveTo(-0.5, 0);
+    s.quadraticCurveTo(-0.2, 0.15, 0.3, 0.2);
+    s.quadraticCurveTo(0.7, 0.25, 0.9, 0.45);
+    s.bezierCurveTo(0.95, 0.6, 1.0, 0.75, 1.05, 0.85);
+    s.quadraticCurveTo(1.15, 0.88, 1.2, 0.95);
+    s.quadraticCurveTo(1.22, 1.02, 1.15, 1.05);
+    s.quadraticCurveTo(1.05, 1.08, 0.95, 1.1);
+    s.bezierCurveTo(0.85, 1.25, 0.78, 1.5, 0.75, 1.75);
+    s.bezierCurveTo(0.75, 2.0, 0.8, 2.2, 0.95, 2.35);
+    s.quadraticCurveTo(1.1, 2.38, 1.3, 2.35);
+    s.quadraticCurveTo(1.5, 2.3, 1.65, 2.28);
+    s.quadraticCurveTo(1.72, 2.32, 1.8, 2.28);
+    s.quadraticCurveTo(1.88, 2.32, 1.95, 2.28);
+    s.quadraticCurveTo(2.02, 2.32, 2.1, 2.3);
+    s.bezierCurveTo(2.25, 2.32, 2.4, 2.38, 2.48, 2.5);
+    s.bezierCurveTo(2.52, 2.62, 2.5, 2.75, 2.42, 2.85);
+    s.bezierCurveTo(2.3, 2.98, 2.1, 3.08, 1.85, 3.14);
+    s.bezierCurveTo(1.6, 3.18, 1.35, 3.16, 1.1, 3.05);
+    s.bezierCurveTo(0.9, 2.9, 0.75, 2.7, 0.65, 2.45);
+    s.bezierCurveTo(0.55, 2.1, 0.45, 1.75, 0.35, 1.5);
+    s.bezierCurveTo(0.2, 1.35, 0.0, 1.2, -0.2, 1.12);
+    s.bezierCurveTo(-0.4, 1.05, -0.55, 1.0, -0.7, 0.95);
+    s.bezierCurveTo(-1.0, 0.9, -1.3, 0.9, -1.6, 0.95);
+    s.bezierCurveTo(-2.0, 1.0, -2.4, 1.0, -2.65, 0.92);
+    s.bezierCurveTo(-2.78, 0.88, -2.82, 0.82, -2.8, 0.75);
+    s.bezierCurveTo(-2.78, 0.68, -2.6, 0.62, -2.4, 0.6);
+    s.bezierCurveTo(-2.0, 0.52, -1.5, 0.45, -1.1, 0.42);
+    s.bezierCurveTo(-0.85, 0.4, -0.7, 0.35, -0.6, 0.25);
+    s.quadraticCurveTo(-0.55, 0.1, -0.5, 0);
+    s.closePath();
+    return s;
+  }
+
+  function makeTrexLeg() {
+    const s = new ShapeRecorder();
+    s.moveTo(-0.3, 0);
+    s.bezierCurveTo(-0.38, -0.15, -0.4, -0.35, -0.38, -0.55);
+    s.bezierCurveTo(-0.35, -0.8, -0.3, -1.0, -0.25, -1.15);
+    s.bezierCurveTo(-0.22, -1.25, -0.2, -1.35, -0.18, -1.5);
+    s.bezierCurveTo(-0.16, -1.65, -0.17, -1.8, -0.2, -1.95);
+    s.quadraticCurveTo(-0.24, -2.02, -0.3, -2.05);
+    s.bezierCurveTo(-0.35, -2.1, -0.38, -2.18, -0.35, -2.22);
+    s.quadraticCurveTo(-0.2, -2.25, 0.0, -2.25);
+    s.quadraticCurveTo(0.15, -2.25, 0.3, -2.22);
+    s.quadraticCurveTo(0.35, -2.2, 0.38, -2.15);
+    s.bezierCurveTo(0.35, -2.08, 0.25, -2.02, 0.15, -1.98);
+    s.quadraticCurveTo(0.12, -1.9, 0.12, -1.8);
+    s.bezierCurveTo(0.13, -1.6, 0.15, -1.4, 0.18, -1.2);
+    s.bezierCurveTo(0.22, -1.0, 0.28, -0.8, 0.33, -0.55);
+    s.bezierCurveTo(0.36, -0.35, 0.35, -0.15, 0.3, 0);
+    s.closePath();
+    return s;
+  }
+
+  function makeTriceratopsBody() {
+    const s = new ShapeRecorder();
+    s.moveTo(-0.2, 0);
+    s.bezierCurveTo(0.1, 0.05, 0.5, 0.08, 0.8, 0.1);
+    s.bezierCurveTo(1.0, 0.12, 1.2, 0.18, 1.35, 0.3);
+    s.bezierCurveTo(1.45, 0.38, 1.55, 0.45, 1.65, 0.5);
+    s.bezierCurveTo(1.8, 0.55, 1.95, 0.58, 2.05, 0.62);
+    s.lineTo(2.15, 0.68);
+    s.lineTo(2.2, 0.9);
+    s.lineTo(2.15, 0.78);
+    s.bezierCurveTo(2.2, 0.88, 2.22, 0.98, 2.2, 1.1);
+    s.lineTo(2.25, 1.15);
+    s.lineTo(2.55, 1.7);
+    s.lineTo(2.35, 1.35);
+    s.bezierCurveTo(2.25, 1.3, 2.1, 1.32, 2.0, 1.35);
+    s.lineTo(1.95, 1.4);
+    s.lineTo(1.7, 1.9);
+    s.lineTo(1.8, 1.55);
+    s.bezierCurveTo(1.7, 1.5, 1.6, 1.52, 1.5, 1.6);
+    s.bezierCurveTo(1.45, 1.75, 1.42, 1.9, 1.4, 2.05);
+    s.quadraticCurveTo(1.42, 2.2, 1.35, 2.3);
+    s.quadraticCurveTo(1.28, 2.38, 1.2, 2.32);
+    s.quadraticCurveTo(1.12, 2.42, 1.02, 2.45);
+    s.quadraticCurveTo(0.92, 2.42, 0.85, 2.35);
+    s.quadraticCurveTo(0.78, 2.45, 0.68, 2.48);
+    s.quadraticCurveTo(0.58, 2.45, 0.5, 2.38);
+    s.quadraticCurveTo(0.42, 2.45, 0.32, 2.42);
+    s.quadraticCurveTo(0.22, 2.38, 0.18, 2.28);
+    s.quadraticCurveTo(0.12, 2.35, 0.05, 2.25);
+    s.quadraticCurveTo(-0.02, 2.15, -0.05, 2.0);
+    s.bezierCurveTo(-0.08, 1.8, -0.08, 1.6, -0.05, 1.45);
+    s.bezierCurveTo(-0.02, 1.3, 0.0, 1.15, -0.05, 1.0);
+    s.bezierCurveTo(-0.15, 0.9, -0.3, 0.85, -0.5, 0.82);
+    s.bezierCurveTo(-0.7, 0.78, -0.85, 0.72, -1.0, 0.65);
+    s.bezierCurveTo(-1.3, 0.55, -1.6, 0.48, -1.85, 0.42);
+    s.bezierCurveTo(-2.0, 0.38, -2.1, 0.32, -2.12, 0.25);
+    s.bezierCurveTo(-2.12, 0.2, -2.08, 0.16, -2.0, 0.15);
+    s.bezierCurveTo(-1.8, 0.18, -1.5, 0.2, -1.2, 0.2);
+    s.bezierCurveTo(-0.9, 0.18, -0.6, 0.12, -0.35, 0.05);
+    s.quadraticCurveTo(-0.28, 0.02, -0.2, 0);
+    s.closePath();
+    return s;
+  }
+
+  function makeTriceratopsLeg() {
+    const s = new ShapeRecorder();
+    s.moveTo(-0.22, 0);
+    s.bezierCurveTo(-0.26, -0.15, -0.28, -0.35, -0.26, -0.55);
+    s.bezierCurveTo(-0.24, -0.75, -0.22, -0.95, -0.2, -1.1);
+    s.bezierCurveTo(-0.19, -1.25, -0.2, -1.35, -0.23, -1.42);
+    s.quadraticCurveTo(-0.26, -1.48, -0.28, -1.52);
+    s.bezierCurveTo(-0.28, -1.58, -0.22, -1.6, -0.1, -1.6);
+    s.quadraticCurveTo(0.0, -1.6, 0.12, -1.58);
+    s.bezierCurveTo(0.18, -1.56, 0.2, -1.52, 0.18, -1.48);
+    s.quadraticCurveTo(0.15, -1.42, 0.12, -1.35);
+    s.bezierCurveTo(0.14, -1.15, 0.17, -0.95, 0.2, -0.75);
+    s.bezierCurveTo(0.23, -0.55, 0.25, -0.35, 0.24, -0.15);
+    s.quadraticCurveTo(0.23, -0.05, 0.22, 0);
+    s.closePath();
+    return s;
+  }
+
+  function makeStegosaurusBody() {
+    const s = new ShapeRecorder();
+    s.moveTo(-0.3, 0);
+    s.bezierCurveTo(0.0, -0.1, 0.4, -0.15, 0.8, -0.12);
+    s.bezierCurveTo(1.1, -0.08, 1.3, 0.0, 1.5, 0.05);
+    s.bezierCurveTo(1.6, 0.02, 1.7, -0.05, 1.8, -0.15);
+    s.bezierCurveTo(1.9, -0.25, 2.0, -0.32, 2.1, -0.35);
+    s.bezierCurveTo(2.2, -0.38, 2.3, -0.35, 2.35, -0.28);
+    s.bezierCurveTo(2.4, -0.22, 2.4, -0.15, 2.35, -0.08);
+    s.bezierCurveTo(2.3, -0.02, 2.22, 0.02, 2.12, 0.04);
+    s.bezierCurveTo(2.0, 0.06, 1.9, 0.08, 1.8, 0.12);
+    s.bezierCurveTo(1.7, 0.18, 1.6, 0.28, 1.5, 0.4);
+    s.bezierCurveTo(1.4, 0.52, 1.35, 0.6, 1.3, 0.65);
+    s.lineTo(1.22, 0.65);
+    s.bezierCurveTo(1.15, 0.7, 1.1, 0.85, 1.15, 1.05);
+    s.lineTo(1.2, 1.2);
+    s.bezierCurveTo(1.25, 0.85, 1.3, 0.72, 1.28, 0.68);
+    s.bezierCurveTo(1.15, 0.7, 1.05, 0.72, 0.98, 0.73);
+    s.bezierCurveTo(0.9, 0.78, 0.82, 0.95, 0.85, 1.18);
+    s.lineTo(0.9, 1.42);
+    s.bezierCurveTo(0.95, 1.0, 1.02, 0.82, 1.0, 0.76);
+    s.bezierCurveTo(0.88, 0.78, 0.75, 0.8, 0.65, 0.8);
+    s.bezierCurveTo(0.55, 0.85, 0.45, 1.05, 0.5, 1.35);
+    s.lineTo(0.55, 1.65);
+    s.bezierCurveTo(0.62, 1.1, 0.7, 0.9, 0.68, 0.82);
+    s.bezierCurveTo(0.55, 0.82, 0.42, 0.78, 0.32, 0.75);
+    s.bezierCurveTo(0.22, 0.8, 0.14, 0.95, 0.18, 1.15);
+    s.lineTo(0.22, 1.35);
+    s.bezierCurveTo(0.28, 0.98, 0.35, 0.82, 0.35, 0.76);
+    s.bezierCurveTo(0.22, 0.74, 0.1, 0.7, 0.0, 0.66);
+    s.bezierCurveTo(-0.08, 0.7, -0.15, 0.82, -0.12, 0.98);
+    s.lineTo(-0.08, 1.12);
+    s.bezierCurveTo(-0.02, 0.85, 0.05, 0.72, 0.02, 0.66);
+    s.bezierCurveTo(-0.1, 0.62, -0.3, 0.58, -0.5, 0.55);
+    s.bezierCurveTo(-0.8, 0.52, -1.1, 0.52, -1.4, 0.55);
+    s.bezierCurveTo(-1.6, 0.58, -1.75, 0.6, -1.85, 0.6);
+    s.lineTo(-1.9, 0.62);
+    s.lineTo(-2.15, 1.0);
+    s.lineTo(-1.98, 0.65);
+    s.lineTo(-2.05, 0.63);
+    s.lineTo(-2.4, 0.95);
+    s.lineTo(-2.15, 0.58);
+    s.bezierCurveTo(-2.25, 0.5, -2.3, 0.42, -2.3, 0.35);
+    s.lineTo(-2.4, 0.1);
+    s.lineTo(-2.2, 0.3);
+    s.lineTo(-2.15, 0.05);
+    s.lineTo(-2.0, 0.28);
+    s.bezierCurveTo(-1.8, 0.25, -1.5, 0.2, -1.2, 0.18);
+    s.bezierCurveTo(-0.9, 0.15, -0.6, 0.08, -0.4, 0.03);
+    s.quadraticCurveTo(-0.35, 0.01, -0.3, 0);
+    s.closePath();
+    return s;
+  }
+
+  function makeStegosaurusLeg() {
+    const s = new ShapeRecorder();
+    s.moveTo(-0.2, 0);
+    s.bezierCurveTo(-0.24, -0.12, -0.26, -0.3, -0.24, -0.5);
+    s.bezierCurveTo(-0.22, -0.7, -0.2, -0.85, -0.19, -0.98);
+    s.quadraticCurveTo(-0.2, -1.08, -0.24, -1.15);
+    s.bezierCurveTo(-0.27, -1.22, -0.28, -1.3, -0.25, -1.38);
+    s.quadraticCurveTo(-0.15, -1.4, 0.0, -1.4);
+    s.quadraticCurveTo(0.1, -1.4, 0.18, -1.38);
+    s.bezierCurveTo(0.2, -1.34, 0.19, -1.28, 0.16, -1.22);
+    s.quadraticCurveTo(0.13, -1.12, 0.12, -1.0);
+    s.bezierCurveTo(0.14, -0.85, 0.17, -0.65, 0.2, -0.5);
+    s.bezierCurveTo(0.22, -0.35, 0.23, -0.15, 0.2, 0);
+    s.closePath();
+    return s;
+  }
+
+  function makeBrachiosaurusBody() {
+    const s = new ShapeRecorder();
+    s.moveTo(-0.3, 0);
+    s.bezierCurveTo(-0.1, 0.05, 0.2, 0.08, 0.5, 0.1);
+    s.bezierCurveTo(0.7, 0.12, 0.85, 0.15, 1.0, 0.2);
+    s.bezierCurveTo(1.1, 0.3, 1.15, 0.5, 1.15, 0.7);
+    s.bezierCurveTo(1.12, 0.9, 1.05, 1.1, 1.0, 1.3);
+    s.bezierCurveTo(0.92, 1.7, 0.88, 2.1, 0.88, 2.5);
+    s.bezierCurveTo(0.88, 2.9, 0.92, 3.2, 1.0, 3.5);
+    s.bezierCurveTo(1.05, 3.7, 1.12, 3.85, 1.2, 3.95);
+    s.bezierCurveTo(1.3, 4.02, 1.4, 4.05, 1.5, 4.08);
+    s.bezierCurveTo(1.6, 4.1, 1.68, 4.12, 1.72, 4.18);
+    s.bezierCurveTo(1.78, 4.25, 1.8, 4.32, 1.78, 4.38);
+    s.bezierCurveTo(1.75, 4.42, 1.68, 4.45, 1.58, 4.48);
+    s.bezierCurveTo(1.45, 4.52, 1.3, 4.52, 1.18, 4.48);
+    s.bezierCurveTo(1.08, 4.44, 1.0, 4.38, 0.95, 4.28);
+    s.bezierCurveTo(0.88, 4.15, 0.82, 4.0, 0.78, 3.8);
+    s.bezierCurveTo(0.72, 3.4, 0.68, 3.0, 0.65, 2.6);
+    s.bezierCurveTo(0.62, 2.2, 0.6, 1.8, 0.6, 1.5);
+    s.bezierCurveTo(0.58, 1.2, 0.52, 1.0, 0.45, 0.85);
+    s.bezierCurveTo(0.35, 0.75, 0.2, 0.7, 0.05, 0.68);
+    s.bezierCurveTo(-0.15, 0.65, -0.3, 0.6, -0.45, 0.55);
+    s.bezierCurveTo(-0.65, 0.5, -0.85, 0.48, -1.0, 0.48);
+    s.bezierCurveTo(-1.3, 0.48, -1.55, 0.45, -1.75, 0.38);
+    s.bezierCurveTo(-1.88, 0.32, -1.95, 0.25, -2.0, 0.18);
+    s.bezierCurveTo(-2.02, 0.12, -2.0, 0.08, -1.95, 0.06);
+    s.bezierCurveTo(-1.85, 0.04, -1.7, 0.08, -1.5, 0.12);
+    s.bezierCurveTo(-1.2, 0.18, -0.9, 0.2, -0.65, 0.18);
+    s.bezierCurveTo(-0.5, 0.15, -0.4, 0.08, -0.3, 0);
+    s.closePath();
+    return s;
+  }
+
+  function makeBrachiosaurusLeg() {
+    const s = new ShapeRecorder();
+    s.moveTo(-0.18, 0);
+    s.bezierCurveTo(-0.22, -0.2, -0.24, -0.45, -0.22, -0.7);
+    s.bezierCurveTo(-0.2, -0.95, -0.18, -1.15, -0.17, -1.35);
+    s.bezierCurveTo(-0.16, -1.5, -0.17, -1.62, -0.2, -1.72);
+    s.quadraticCurveTo(-0.22, -1.78, -0.24, -1.82);
+    s.bezierCurveTo(-0.24, -1.88, -0.18, -1.9, -0.08, -1.9);
+    s.quadraticCurveTo(0.0, -1.9, 0.08, -1.9);
+    s.bezierCurveTo(0.14, -1.88, 0.16, -1.84, 0.14, -1.78);
+    s.quadraticCurveTo(0.12, -1.72, 0.1, -1.62);
+    s.bezierCurveTo(0.11, -1.45, 0.13, -1.25, 0.15, -1.05);
+    s.bezierCurveTo(0.17, -0.8, 0.19, -0.55, 0.2, -0.35);
+    s.bezierCurveTo(0.2, -0.2, 0.19, -0.08, 0.18, 0);
+    s.closePath();
+    return s;
+  }
+
+  // ---- Dino configs (hip positions from live-dinos.html) ----
+  const DINO_CONFIGS = {
+    trex: {
+      bodyFn: makeTrexBody,
+      legFn: makeTrexLeg,
+      hipLeft: { x: -0.3, y: 0 },
+      hipRight: { x: 0.6, y: 0 },
+      legLength: 2.25,
+      dots: 1,
+      label: 'T-Rex'
+    },
+    triceratops: {
+      bodyFn: makeTriceratopsBody,
+      legFn: makeTriceratopsLeg,
+      hipLeft: { x: -0.1, y: 0 },
+      hipRight: { x: 0.8, y: 0 },
+      legLength: 1.6,
+      dots: 2,
+      label: 'Triceratops'
+    },
+    stegosaurus: {
+      bodyFn: makeStegosaurusBody,
+      legFn: makeStegosaurusLeg,
+      hipLeft: { x: -0.1, y: 0 },
+      hipRight: { x: 1.0, y: 0 },
+      legLength: 1.4,
+      dots: 3,
+      label: 'Stegosaurus'
+    },
+    brachiosaurus: {
+      bodyFn: makeBrachiosaurusBody,
+      legFn: makeBrachiosaurusLeg,
+      hipLeft: { x: -0.1, y: 0 },
+      hipRight: { x: 0.8, y: 0 },
+      legLength: 1.9,
+      dots: 4,
+      label: 'Brachiosaurus'
+    }
+  };
+
+  // ---- Flip Y in an SVG path string (negate all Y values) ----
+  function flipYPath(pathStr) {
+    // Parse the SVG path and negate every Y coordinate
+    // Commands: M x y, L x y, Q cx cy x y, C c1x c1y c2x c2y x y, Z
+    return pathStr.replace(/([MLQCZ])\s*([^MLQCZ]*)/gi, function(match, cmd, args) {
+      if (cmd === 'Z') return 'Z';
+      var nums = args.trim().split(/\s+/).map(Number);
+      // Negate every odd-indexed number (Y values: index 1, 3, 5, ...)
+      for (var i = 1; i < nums.length; i += 2) {
+        nums[i] = -nums[i];
+      }
+      return cmd + ' ' + nums.join(' ');
+    });
+  }
+
+  // ---- Translate an SVG path string by (dx, dy) ----
+  function translatePath(pathStr, dx, dy) {
+    return pathStr.replace(/([MLQCZ])\s*([^MLQCZ]*)/gi, function(match, cmd, args) {
+      if (cmd === 'Z') return 'Z';
+      var nums = args.trim().split(/\s+/).map(Number);
+      for (var i = 0; i < nums.length; i += 2) {
+        nums[i] += dx;
+        if (i + 1 < nums.length) nums[i + 1] += dy;
+      }
+      return cmd + ' ' + nums.join(' ');
+    });
+  }
+
+  // ---- Compute bounding box of an SVG path string ----
+  function pathBounds(pathStr) {
+    var nums = [];
+    pathStr.replace(/([MLQCZ])\s*([^MLQCZ]*)/gi, function(match, cmd, args) {
+      if (cmd === 'Z') return;
+      var n = args.trim().split(/\s+/).map(Number);
+      for (var i = 0; i < n.length; i += 2) {
+        nums.push({ x: n[i], y: n[i + 1] });
+      }
+    });
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    nums.forEach(function(p) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    });
+    return { minX: minX, minY: minY, maxX: maxX, maxY: maxY, w: maxX - minX, h: maxY - minY };
+  }
+
+  // ---- Scale an SVG path string by a factor around origin ----
+  function scalePath(pathStr, sx, sy) {
+    return pathStr.replace(/([MLQCZ])\s*([^MLQCZ]*)/gi, function(match, cmd, args) {
+      if (cmd === 'Z') return 'Z';
+      var nums = args.trim().split(/\s+/).map(Number);
+      for (var i = 0; i < nums.length; i += 2) {
+        nums[i] *= sx;
+        if (i + 1 < nums.length) nums[i + 1] *= sy;
+      }
+      return cmd + ' ' + nums.join(' ');
+    });
+  }
+
+  // ---- SVG namespace helper ----
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  // ---- Render a dino into its SVG ----
+  function renderDino(species) {
+    var cfg = DINO_CONFIGS[species];
+    var svg = document.getElementById('svg-' + species);
+    var viewW = 680, viewH = 620;
+    var margin = 50;
+
+    // Generate raw paths (Three.js coordinate system: Y up)
+    var bodyShape = cfg.bodyFn();
+    var legShape = cfg.legFn();
+
+    var bodyRaw = bodyShape.toSVGPath();
+    var legRaw = legShape.toSVGPath();
+
+    // Flip Y (Three.js Y-up -> SVG Y-down)
+    var bodyFlipped = flipYPath(bodyRaw);
+    // Legs are positioned relative to hip, which is at (hipX, 0) on the body.
+    // In Three.js, legs hang downward from hip (negative Y).
+    // After flipping Y, leg coordinates become positive (going down).
+    var legFlipped = flipYPath(legRaw);
+
+    // Position legs at their hip positions (the hip Y is 0, so after flip it's still 0)
+    var leftLegPath = translatePath(legFlipped, cfg.hipLeft.x, -cfg.hipLeft.y);
+    var rightLegPath = translatePath(legFlipped, cfg.hipRight.x, -cfg.hipRight.y);
+
+    // Compute overall bounding box of all parts combined
+    var allPaths = [bodyFlipped, leftLegPath, rightLegPath];
+    var totalBounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    allPaths.forEach(function(p) {
+      var b = pathBounds(p);
+      if (b.minX < totalBounds.minX) totalBounds.minX = b.minX;
+      if (b.minY < totalBounds.minY) totalBounds.minY = b.minY;
+      if (b.maxX > totalBounds.maxX) totalBounds.maxX = b.maxX;
+      if (b.maxY > totalBounds.maxY) totalBounds.maxY = b.maxY;
+    });
+
+    var rawW = totalBounds.maxX - totalBounds.minX;
+    var rawH = totalBounds.maxY - totalBounds.minY;
+
+    // Scale to fit in viewBox with margin
+    var availW = viewW - margin * 2;
+    var availH = viewH - margin * 2;
+    var scale = Math.min(availW / rawW, availH / rawH);
+
+    // After scaling, center in viewBox
+    var scaledW = rawW * scale;
+    var scaledH = rawH * scale;
+    var offsetX = margin + (availW - scaledW) / 2 - totalBounds.minX * scale;
+    var offsetY = margin + (availH - scaledH) / 2 - totalBounds.minY * scale;
+
+    // Transform each path: scale then translate
+    function transformPath(p) {
+      var scaled = scalePath(p, scale, scale);
+      return translatePath(scaled, offsetX, offsetY);
+    }
+
+    var strokeW = Math.max(2, Math.min(6, scale * 0.04));
+
+    // Common path attributes
+    var pathAttrs = {
+      fill: 'none',
+      stroke: '#000',
+      'stroke-width': strokeW,
+      'stroke-linejoin': 'round',
+      'stroke-linecap': 'round'
+    };
+
+    // Draw legs first (behind body)
+    svg.appendChild(svgEl('path', Object.assign({ d: transformPath(leftLegPath) }, pathAttrs)));
+    svg.appendChild(svgEl('path', Object.assign({ d: transformPath(rightLegPath) }, pathAttrs)));
+
+    // Draw body on top
+    svg.appendChild(svgEl('path', Object.assign({ d: transformPath(bodyFlipped) }, pathAttrs)));
+
+    // Draw dot indicator
+    var dots = cfg.dots;
+    var dotR = 10;
+    var dotSpacing = 30;
+    var rectW = dots * dotSpacing + 20;
+    var rectX = viewW - rectW - 10;
+    svg.appendChild(svgEl('rect', {
+      x: rectX, y: 10, width: rectW, height: 40, rx: 6,
+      fill: 'none', stroke: '#000', 'stroke-width': 2
+    }));
+    for (var i = 0; i < dots; i++) {
+      svg.appendChild(svgEl('circle', {
+        cx: rectX + 20 + i * dotSpacing, cy: 30, r: dotR, fill: '#000'
+      }));
+    }
+  }
+
+  // ---- Render all dinos ----
+  ['trex', 'triceratops', 'stegosaurus', 'brachiosaurus'].forEach(renderDino);
+
+  // ---- Species selector ----
   function showSpecies(species) {
-    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.add('hidden'); });
     document.getElementById('page-' + species).classList.remove('hidden');
-    document.querySelectorAll('.species-btns button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.species-btns button').forEach(function(b) { b.classList.remove('active'); });
     document.getElementById('btn-' + species).classList.add('active');
   }
 </script>
