@@ -38,7 +38,7 @@
 
     #labels {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; overflow: hidden;
+      pointer-events: none; overflow: hidden; z-index: 2;
     }
     #title-label {
       position: absolute;
@@ -183,246 +183,77 @@
     });
 
     // ===================================================================
-    // PNG OUTLINE TRACING → THREE.Shape
+    // SVG PATH → THREE.Shape
     // ===================================================================
-    // Load a PNG, trace its alpha outline, and create a THREE.Shape for extrusion.
+    // Server traces PNGs with potrace at startup. We fetch the SVG paths.
 
-    // Species PNG files
-    const SPECIES_PNGS = {
-      trex: '/trex.png',
-      triceratops: '/tric.png',
-      brachiosaurus: '/brach.png',
-    };
+    const DINO_SCALES = { trex: 1.0, triceratops: 0.95, brachiosaurus: 1.1 };
+    const DINO_SPEEDS = { trex: 1.2, triceratops: 0.9, brachiosaurus: 0.6 };
 
-    const DINO_SCALES = {
-      trex: 1.0,
-      triceratops: 0.95,
-      brachiosaurus: 1.1,
-    };
-
-    const DINO_SPEEDS = {
-      trex: 1.2,
-      triceratops: 0.9,
-      brachiosaurus: 0.6,
-    };
-
-    // --- Shape cache (traced outlines) ---
+    // --- Shape cache ---
     const shapeCache = new Map();
 
-    function loadImageToCanvas(src) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          const c = document.createElement('canvas');
-          c.width = img.width; c.height = img.height;
-          const ctx = c.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          resolve({ ctx, width: img.width, height: img.height });
-        };
-        img.onerror = reject;
-        img.src = src;
-      });
-    }
+    // Parse an SVG path d-string into a THREE.Shape
+    function svgPathToShape(pathStr, svgWidth, svgHeight, targetHeight) {
+      const sc = targetHeight / svgHeight;
+      const shape = new THREE.Shape();
+      const re = /([MLCQZmlcqz])\s*([^MLCQZmlcqz]*)/gi;
+      let match, curX = 0, curY = 0;
 
-    // Fill the interior of a shape defined by opaque pixels.
-    // Flood-fills from the edges (transparent) then inverts, so the
-    // outlined dino becomes a solid filled region for contour tracing.
-    function fillInterior(ctx, w, h, threshold = 64) {
-      const imgData = ctx.getImageData(0, 0, w, h);
-      const data = imgData.data;
-
-      // Build binary mask: 1 = opaque (outline or fill), 0 = transparent
-      const mask = new Uint8Array(w * h);
-      for (let i = 0; i < w * h; i++) {
-        mask[i] = data[i * 4 + 3] > threshold ? 1 : 0;
-      }
-
-      // Flood-fill from edges to mark exterior transparent pixels as 2
-      const stack = [];
-      for (let x = 0; x < w; x++) { stack.push(x, 0); stack.push(x, h - 1); }
-      for (let y = 0; y < h; y++) { stack.push(0, y); stack.push(w - 1, y); }
-
-      while (stack.length > 0) {
-        const y = stack.pop(), x = stack.pop();
-        if (x < 0 || x >= w || y < 0 || y >= h) continue;
-        const idx = y * w + x;
-        if (mask[idx] !== 0) continue; // already opaque or visited
-        mask[idx] = 2; // mark as exterior
-        stack.push(x - 1, y); stack.push(x + 1, y);
-        stack.push(x, y - 1); stack.push(x, y + 1);
-      }
-
-      // Everything that's still 0 (transparent but NOT exterior) is interior — fill it
-      for (let i = 0; i < w * h; i++) {
-        if (mask[i] === 0) {
-          // Interior pixel — make it opaque white
-          data[i * 4] = 255;
-          data[i * 4 + 1] = 255;
-          data[i * 4 + 2] = 255;
-          data[i * 4 + 3] = 255;
+      while ((match = re.exec(pathStr)) !== null) {
+        const cmd = match[1];
+        const nums = match[2].trim().length > 0 ? match[2].trim().split(/[\s,]+/).map(Number) : [];
+        switch (cmd) {
+          case 'M': for (let i=0;i<nums.length;i+=2){curX=nums[i];curY=nums[i+1];if(i===0)shape.moveTo(curX*sc,(svgHeight-curY)*sc);else shape.lineTo(curX*sc,(svgHeight-curY)*sc);} break;
+          case 'm': for (let i=0;i<nums.length;i+=2){curX+=nums[i];curY+=nums[i+1];if(i===0)shape.moveTo(curX*sc,(svgHeight-curY)*sc);else shape.lineTo(curX*sc,(svgHeight-curY)*sc);} break;
+          case 'L': for (let i=0;i<nums.length;i+=2){curX=nums[i];curY=nums[i+1];shape.lineTo(curX*sc,(svgHeight-curY)*sc);} break;
+          case 'l': for (let i=0;i<nums.length;i+=2){curX+=nums[i];curY+=nums[i+1];shape.lineTo(curX*sc,(svgHeight-curY)*sc);} break;
+          case 'C': for (let i=0;i<nums.length;i+=6){shape.bezierCurveTo(nums[i]*sc,(svgHeight-nums[i+1])*sc,nums[i+2]*sc,(svgHeight-nums[i+3])*sc,nums[i+4]*sc,(svgHeight-nums[i+5])*sc);curX=nums[i+4];curY=nums[i+5];} break;
+          case 'c': for (let i=0;i<nums.length;i+=6){shape.bezierCurveTo((curX+nums[i])*sc,(svgHeight-(curY+nums[i+1]))*sc,(curX+nums[i+2])*sc,(svgHeight-(curY+nums[i+3]))*sc,(curX+nums[i+4])*sc,(svgHeight-(curY+nums[i+5]))*sc);curX+=nums[i+4];curY+=nums[i+5];} break;
+          case 'Q': for (let i=0;i<nums.length;i+=4){shape.quadraticCurveTo(nums[i]*sc,(svgHeight-nums[i+1])*sc,nums[i+2]*sc,(svgHeight-nums[i+3])*sc);curX=nums[i+2];curY=nums[i+3];} break;
+          case 'q': for (let i=0;i<nums.length;i+=4){shape.quadraticCurveTo((curX+nums[i])*sc,(svgHeight-(curY+nums[i+1]))*sc,(curX+nums[i+2])*sc,(svgHeight-(curY+nums[i+3]))*sc);curX+=nums[i+2];curY+=nums[i+3];} break;
+          case 'Z': case 'z': shape.closePath(); break;
         }
       }
-      ctx.putImageData(imgData, 0, 0);
+      return shape;
     }
 
-    // Extract the outline of a filled shape by scanning for boundary pixels.
-    // Much simpler than Moore tracing — just collect all pixels where
-    // opaque meets transparent, then sort them into a contour order.
-    function traceAlphaContour(ctx, w, h, threshold = 64) {
-      const data = ctx.getImageData(0, 0, w, h).data;
-      const opaque = (x, y) => x >= 0 && x < w && y >= 0 && y < h && data[(y * w + x) * 4 + 3] > threshold;
-
-      // Build a binary grid and find boundary pixels
-      const boundary = [];
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          if (opaque(x, y) && (!opaque(x-1,y) || !opaque(x+1,y) || !opaque(x,y-1) || !opaque(x,y+1))) {
-            boundary.push([x, y]);
-          }
-        }
-      }
-      console.log(`  boundary pixels found: ${boundary.length}`);
-      if (boundary.length < 3) return boundary;
-
-      // Order boundary pixels into a contour using nearest-neighbor chain.
-      // Start from the topmost-leftmost boundary pixel.
-      const used = new Uint8Array(boundary.length);
-      const ordered = [];
-      // Find topmost-leftmost
-      let bestIdx = 0;
-      for (let i = 1; i < boundary.length; i++) {
-        if (boundary[i][1] < boundary[bestIdx][1] ||
-            (boundary[i][1] === boundary[bestIdx][1] && boundary[i][0] < boundary[bestIdx][0])) {
-          bestIdx = i;
-        }
-      }
-
-      // Build spatial lookup for fast nearest-neighbor
-      const cellSize = 4;
-      const gridW = Math.ceil(w / cellSize), gridH = Math.ceil(h / cellSize);
-      const grid = new Array(gridW * gridH);
-      for (let i = 0; i < boundary.length; i++) {
-        const gx = Math.floor(boundary[i][0] / cellSize);
-        const gy = Math.floor(boundary[i][1] / cellSize);
-        const key = gy * gridW + gx;
-        if (!grid[key]) grid[key] = [];
-        grid[key].push(i);
-      }
-
-      let ci = bestIdx;
-      for (let step = 0; step < boundary.length; step++) {
-        ordered.push(boundary[ci]);
-        used[ci] = 1;
-
-        // Find nearest unused boundary pixel
-        const px = boundary[ci][0], py = boundary[ci][1];
-        let bestDist = Infinity, bestNext = -1;
-        const gx = Math.floor(px / cellSize), gy = Math.floor(py / cellSize);
-        const searchR = 3; // search radius in grid cells
-        for (let dy = -searchR; dy <= searchR; dy++) {
-          for (let dx = -searchR; dx <= searchR; dx++) {
-            const key = (gy + dy) * gridW + (gx + dx);
-            if (key < 0 || key >= grid.length || !grid[key]) continue;
-            for (const ni of grid[key]) {
-              if (used[ni]) continue;
-              const d = (boundary[ni][0] - px) ** 2 + (boundary[ni][1] - py) ** 2;
-              if (d < bestDist) { bestDist = d; bestNext = ni; }
-            }
-          }
-        }
-        if (bestNext < 0) break;
-        ci = bestNext;
-      }
-
-      console.log(`  ordered contour points: ${ordered.length}`);
-      return ordered;
-    }
-
-    // Ramer-Douglas-Peucker simplification
-    function simplifyContour(pts, eps) {
-      if (pts.length <= 2) return pts;
-      const a = pts[0], b = pts[pts.length - 1];
-      let maxD = 0, maxI = 0;
-      for (let i = 1; i < pts.length - 1; i++) {
-        const d = ptLineDist(pts[i], a, b);
-        if (d > maxD) { maxD = d; maxI = i; }
-      }
-      if (maxD > eps) {
-        const L = simplifyContour(pts.slice(0, maxI + 1), eps);
-        const R = simplifyContour(pts.slice(maxI), eps);
-        return L.slice(0, -1).concat(R);
-      }
-      return [a, b];
-    }
-
-    function ptLineDist(p, a, b) {
-      const dx = b[0] - a[0], dy = b[1] - a[1];
-      const len2 = dx * dx + dy * dy;
-      if (len2 === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
-      const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2));
-      return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
-    }
-
-    // Convert pixel contour → THREE.Shape (Y-flipped, scaled to targetHeight)
-    function contourToShape(contour, imgH, targetHeight) {
-      const scale = targetHeight / imgH;
-      const s = new THREE.Shape();
-      s.moveTo(contour[0][0] * scale, (imgH - contour[0][1]) * scale);
-      for (let i = 1; i < contour.length; i++) {
-        s.lineTo(contour[i][0] * scale, (imgH - contour[i][1]) * scale);
-      }
-      s.closePath();
-      return s;
-    }
-
-    // Get or create traced shape for a species
+    // Fetch traced SVG paths from server, cache shapes
+    let dinoPaths = null;
     async function getSpeciesShape(species) {
       if (shapeCache.has(species)) return shapeCache.get(species);
-      const pngUrl = SPECIES_PNGS[species] || SPECIES_PNGS.trex;
-      const { ctx, width, height } = await loadImageToCanvas(pngUrl);
-      fillInterior(ctx, width, height);
-      // Debug: count opaque pixels after fill
-      const dbgData = ctx.getImageData(0, 0, width, height).data;
-      let opaqueCount = 0;
-      for (let i = 0; i < width * height; i++) if (dbgData[i * 4 + 3] > 64) opaqueCount++;
-      console.log(`[${species}] opaque pixels after fill: ${opaqueCount} / ${width * height}`);
-      let contour = traceAlphaContour(ctx, width, height);
-      console.log(`[${species}] raw contour points: ${contour.length}`);
-      contour = simplifyContour(contour, 3.0);
-      console.log(`[${species}] simplified contour points: ${contour.length}`);
+      if (!dinoPaths) {
+        const res = await fetch('/api/dino-paths');
+        dinoPaths = await res.json();
+      }
+      const info = dinoPaths[species] || dinoPaths.trex;
       const targetHeight = 3.0;
-      const scale = targetHeight / height;
-      const shape = contourToShape(contour, height, targetHeight);
-      // Store full image bounds in shape-coordinate space for UV mapping
-      const result = {
-        shape,
-        imgWidth: width * scale,   // full image width in shape units
-        imgHeight: targetHeight,    // full image height in shape units
-      };
+      const sc = targetHeight / info.height;
+      const shape = svgPathToShape(info.path, info.width, info.height, targetHeight);
+      const result = { shape, imgWidth: info.width * sc, imgHeight: targetHeight };
       shapeCache.set(species, result);
       return result;
     }
 
     // ===================================================================
-    // CUSTOM UV GENERATOR for ExtrudeGeometry
+    // UV GENERATOR for ExtrudeGeometry
     // ===================================================================
-    // Uses full image bounds so the texture maps 1:1 with the source PNG
     function makeUVGenerator(imgWidth, imgHeight) {
       return {
         generateTopUV(geometry, vertices, indexA, indexB, indexC) {
-          const ax = vertices[indexA * 3], ay = vertices[indexA * 3 + 1];
-          const bx = vertices[indexB * 3], by = vertices[indexB * 3 + 1];
-          const cx = vertices[indexC * 3], cy = vertices[indexC * 3 + 1];
+          const ax = vertices[indexA*3], ay = vertices[indexA*3+1];
+          const bx = vertices[indexB*3], by = vertices[indexB*3+1];
+          const cx = vertices[indexC*3], cy = vertices[indexC*3+1];
           return [
-            new THREE.Vector2(ax / imgWidth, ay / imgHeight),
-            new THREE.Vector2(bx / imgWidth, by / imgHeight),
-            new THREE.Vector2(cx / imgWidth, cy / imgHeight),
+            new THREE.Vector2(ax/imgWidth, ay/imgHeight),
+            new THREE.Vector2(bx/imgWidth, by/imgHeight),
+            new THREE.Vector2(cx/imgWidth, cy/imgHeight),
           ];
         },
         generateSideWallUV() {
           return [
-            new THREE.Vector2(0, 0), new THREE.Vector2(1, 0),
-            new THREE.Vector2(1, 1), new THREE.Vector2(0, 1),
+            new THREE.Vector2(0,0), new THREE.Vector2(1,0),
+            new THREE.Vector2(1,1), new THREE.Vector2(0,1),
           ];
         }
       };
@@ -443,11 +274,11 @@
           const imgData = ctx.getImageData(0, 0, w, h);
           const d = imgData.data;
           for (let i = 0; i < d.length; i += 4) {
-            if (d[i + 3] < 10) continue;
+            if (d[i+3] < 10) continue;
             for (let c = 0; c < 3; c++) {
-              let v = d[i + c] / 255;
-              v = v < 0.5 ? 0.5 * Math.pow(2 * v, 2.8) : 1 - 0.5 * Math.pow(2 * (1 - v), 2.8);
-              d[i + c] = Math.round(v * 255);
+              let v = d[i+c] / 255;
+              v = v < 0.5 ? 0.5*Math.pow(2*v,2.8) : 1-0.5*Math.pow(2*(1-v),2.8);
+              d[i+c] = Math.round(v * 255);
             }
           }
           ctx.putImageData(imgData, 0, 0);
@@ -460,23 +291,18 @@
     }
 
     // ===================================================================
-    // CREATE DINO 3D (PNG-traced wooden cutout)
+    // CREATE DINO 3D (potrace-traced wooden cutout)
     // ===================================================================
     async function createDino3D(serverData) {
       const species = serverData.species || 'trex';
       const scale = DINO_SCALES[species] || 1.0;
-
-      // Get traced shape from species PNG
       const { shape, imgWidth, imgHeight } = await getSpeciesShape(species);
 
       const geometry = new THREE.ExtrudeGeometry(shape, {
-        depth: 0.3,
-        bevelEnabled: false,
+        depth: 0.3, bevelEnabled: false,
         UVGenerator: makeUVGenerator(imgWidth, imgHeight),
       });
-      console.log(`[${species}] geometry vertices: ${geometry.attributes.position.count}, triangles: ${geometry.index ? geometry.index.count / 3 : 'none'}`);
 
-      // Build material
       let frontBackMat;
       if (serverData.imageData) {
         const tex = await loadDinoTexture(serverData.imageData);
@@ -488,8 +314,6 @@
       }
 
       const mesh = new THREE.Mesh(geometry, [frontBackMat, woodMat]);
-
-      // Center on bounding box, feet at origin
       geometry.computeBoundingBox();
       const bb = geometry.boundingBox;
       const cx = (bb.min.x + bb.max.x) / 2;
@@ -501,7 +325,6 @@
       group.add(mesh);
       group.scale.setScalar(scale);
 
-      // Shadow
       const shadowGeo = new THREE.CircleGeometry(1.2, 16);
       const shadowMat2 = new THREE.MeshBasicMaterial({
         color: 0x000000, transparent: true, opacity: 0.2, depthWrite: false
@@ -510,33 +333,28 @@
       shadow.rotation.x = -Math.PI / 2;
       shadow.position.y = -0.01 / scale;
       group.add(shadow);
-
       scene.add(group);
 
       const dinoHeight = (bb.max.y - bb.min.y) * scale;
-      // Hero dino spawns centrally; others spawn randomly
       if (serverData.isHero) {
         group.position.set(0, GROUND_Y, 6);
       } else {
         group.position.set(
-          -8 + Math.random() * 16,
-          GROUND_Y,
+          -8 + Math.random() * 16, GROUND_Y,
           ARENA.zMin + 3 + Math.random() * (ARENA.zMax - ARENA.zMin - 6)
         );
       }
 
       const entry = {
-        id: serverData.id,
-        name: serverData.name,
+        id: serverData.id, name: serverData.name,
         species, group, mesh, shadow,
-        material: frontBackMat,
-        height: dinoHeight,
-        heading: Math.random() * Math.PI * 2,
-        targetHeading: Math.random() * Math.PI * 2,
-        smoothHeading: Math.random() * Math.PI * 2,
-        speed: (serverData.speed || 60) / 300 * (DINO_SPEEDS[species] || 1),
-        wanderTimer: Math.random() * 5,
-        walkPhase: Math.random() * Math.PI * 2,
+        material: frontBackMat, height: dinoHeight,
+        heading: Math.random()*Math.PI*2,
+        targetHeading: Math.random()*Math.PI*2,
+        smoothHeading: Math.random()*Math.PI*2,
+        speed: (serverData.speed||60)/300*(DINO_SPEEDS[species]||1),
+        wanderTimer: Math.random()*5,
+        walkPhase: Math.random()*Math.PI*2,
         boostTimer: 0, boostTarget: null,
         spinRemaining: 0,
         partyHat: null, partyHatTimer: 0,
@@ -602,29 +420,29 @@
       // --- Come closer ---
       if (entry.boostTimer > 0) {
         entry.boostTimer -= dt;
-        const tx = entry.boostTarget.x;
-        const tz = entry.boostTarget.z;
-        const dx = tx - group.position.x;
-        const dz = tz - group.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist > 0.5) {
+        const dx = entry.boostTarget.x - group.position.x;
+        const dz = entry.boostTarget.z - group.position.z;
+        if (Math.sqrt(dx * dx + dz * dz) > 0.5) {
           entry.targetHeading = Math.atan2(dx, dz);
         }
       }
 
-      // --- Wander ---
+      // --- Active wandering: pick random waypoints across the arena ---
       entry.wanderTimer -= dt;
       if (entry.wanderTimer <= 0) {
-        entry.targetHeading += (Math.random() - 0.5) * 1.5;
-        entry.wanderTimer = 4 + Math.random() * 4;
+        // Pick a random point in the arena to walk toward
+        const wx = ARENA.xMin + 3 + Math.random() * (ARENA.xMax - ARENA.xMin - 6);
+        const wz = ARENA.zMin + 3 + Math.random() * (ARENA.zMax - ARENA.zMin - 6);
+        const dx = wx - group.position.x;
+        const dz = wz - group.position.z;
+        entry.targetHeading = Math.atan2(dx, dz);
+        entry.wanderTimer = 2 + Math.random() * 3; // shorter intervals = more active
       }
 
-      // --- Wall avoidance (strong, with hard clamp) ---
+      // --- Wall avoidance ---
       const margin = 3;
-      const px = group.position.x;
-      const pz = group.position.z;
-      let steerX = 0, steerZ = 0;
-      let wallUrgency = 0;
+      const px = group.position.x, pz = group.position.z;
+      let steerX = 0, steerZ = 0, wallUrgency = 0;
       if (px < ARENA.xMin + margin) { const f = 1 - (px - ARENA.xMin) / margin; steerX += f; wallUrgency = Math.max(wallUrgency, f); }
       if (px > ARENA.xMax - margin) { const f = 1 - (ARENA.xMax - px) / margin; steerX -= f; wallUrgency = Math.max(wallUrgency, f); }
       if (pz < ARENA.zMin + margin) { const f = 1 - (pz - ARENA.zMin) / margin; steerZ += f; wallUrgency = Math.max(wallUrgency, f); }
@@ -632,12 +450,11 @@
       if (steerX || steerZ) {
         entry.targetHeading = Math.atan2(steerX, steerZ);
       }
-      // Hard clamp: don't let dinos leave the arena
-      group.position.x = Math.max(ARENA.xMin, Math.min(ARENA.xMax, group.position.x));
-      group.position.z = Math.max(ARENA.zMin, Math.min(ARENA.zMax, group.position.z));
+      group.position.x = Math.max(ARENA.xMin, Math.min(ARENA.xMax, px));
+      group.position.z = Math.max(ARENA.zMin, Math.min(ARENA.zMax, pz));
 
-      // --- Smooth heading (faster turning near walls) ---
-      const turnRate = 2 + wallUrgency * 8;
+      // --- Smooth heading (responsive turning) ---
+      const turnRate = 3 + wallUrgency * 8;
       let diff = entry.targetHeading - entry.smoothHeading;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
@@ -650,23 +467,20 @@
         entry.heading += diff2 * Math.min(1, dt * (turnRate + 1));
       }
 
-      // --- Move forward ---
-      const moveSpeed = entry.speed * speedMult;
+      // --- Move forward (faster base speed) ---
+      const moveSpeed = entry.speed * speedMult * 2.5;
       group.position.x += Math.sin(entry.heading) * moveSpeed * dt;
       group.position.z += Math.cos(entry.heading) * moveSpeed * dt;
-
-      // Keep on ground
-      group.position.y = GROUND_Y;
 
       // --- Apply rotation ---
       group.rotation.y = entry.heading;
 
-      // --- Walking animation (stompy wooden toy gait) ---
-      const walkRate = 4 + moveSpeed * 10;
+      // --- Walking animation ---
+      const walkRate = 4 + moveSpeed * 8;
       entry.walkPhase += dt * walkRate;
-      const rock = Math.sin(entry.walkPhase) * 0.08;
-      const sway = Math.sin(entry.walkPhase * 0.5) * 0.05;
-      const bob = (1 - Math.abs(Math.sin(entry.walkPhase))) * 0.12;
+      const rock = Math.sin(entry.walkPhase) * 0.06;
+      const sway = Math.sin(entry.walkPhase * 0.5) * 0.04;
+      const bob = (1 - Math.abs(Math.sin(entry.walkPhase))) * 0.08;
       group.rotation.x = rock;
       group.rotation.z = sway;
       group.position.y = GROUND_Y + bob;
@@ -980,9 +794,18 @@
           entry.group.remove(entry.partyHat);
         }
         const hat = createPartyHat();
-        const hatScale = 1 / (DINO_SCALES[entry.species] || 1);
-        hat.scale.setScalar(hatScale * 0.6);
-        hat.position.y = entry.height / (DINO_SCALES[entry.species] || 1) - 0.3;
+        const s = DINO_SCALES[entry.species] || 1;
+        hat.scale.setScalar(0.5 / s);
+        // Hat position on head — species-specific (in shape local coords before centering)
+        // Images are 1408x768, shape is targetHeight=3.0, so shapeW = 3.0 * 1408/768 ≈ 5.5
+        // Position is relative to group center, so we need to offset from center
+        const HAT_POS = {
+          trex:          { x: -1.8, y: 2.9 },  // head upper-left in image → negative x, high y
+          triceratops:   { x: 0.8,  y: 2.7 },  // frill top-center-right
+          brachiosaurus: { x: 1.5,  y: 2.9 },  // top of head on long neck
+        };
+        const hp = HAT_POS[entry.species] || HAT_POS.trex;
+        hat.position.set(hp.x / s, hp.y / s, 0);
         entry.group.add(hat);
         entry.partyHat = hat;
         entry.partyHatTimer = 10;

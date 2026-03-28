@@ -3,6 +3,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
+const potrace = require('potrace');
 const processImage = require('./lib/processImage');
 const processDinoImage = require('./lib/processDinoImage');
 
@@ -102,6 +103,56 @@ async function generateHeroTurtle() {
   };
 }
 
+// --- Dino SVG Path Tracing (potrace) ---
+const DINO_PNGS = {
+  trex: path.join(__dirname, 'public', 'trex.png'),
+  triceratops: path.join(__dirname, 'public', 'tric.png'),
+  brachiosaurus: path.join(__dirname, 'public', 'brach.png'),
+};
+const dinoSvgPaths = {}; // species → { path, width, height }
+
+async function tracePng(filePath) {
+  // The PNGs are outlines (black lines on white, transparent outside).
+  // We need the filled silhouette, not just the outline.
+  // Step 1: Flatten alpha — transparent becomes white, opaque stays as-is.
+  // Step 2: The dino interior (white) + outline (black) on white background
+  //         means potrace sees the outline as the shape. Instead, we want
+  //         to trace the alpha channel — everything non-transparent is the shape.
+  const img = sharp(filePath);
+  const meta = await img.metadata();
+  const { data } = await sharp(filePath).raw().ensureAlpha().toBuffer({ resolveWithObject: true });
+
+  // Create a new image: black where alpha > 128, white where transparent
+  const w = meta.width, h = meta.height;
+  const bw = Buffer.alloc(w * h);
+  for (let i = 0; i < w * h; i++) {
+    bw[i] = data[i * 4 + 3] > 128 ? 0 : 255; // black = dino, white = background
+  }
+  const filledPng = await sharp(bw, { raw: { width: w, height: h, channels: 1 } })
+    .png().toBuffer();
+
+  return new Promise((resolve, reject) => {
+    potrace.trace(filledPng, { threshold: 128, turdSize: 5 }, (err, svg) => {
+      if (err) return reject(err);
+      const pathMatch = svg.match(/d="([^"]+)"/);
+      const sizeMatch = svg.match(/width="(\d+)" height="(\d+)"/);
+      if (!pathMatch || !sizeMatch) return reject(new Error('Failed to parse SVG'));
+      resolve({
+        path: pathMatch[1],
+        width: parseInt(sizeMatch[1]),
+        height: parseInt(sizeMatch[2]),
+      });
+    });
+  });
+}
+
+async function traceAllDinos() {
+  for (const [species, filePath] of Object.entries(DINO_PNGS)) {
+    dinoSvgPaths[species] = await tracePng(filePath);
+    console.log(`Traced ${species}: ${dinoSvgPaths[species].path.length} chars`);
+  }
+}
+
 // --- Hero Dino Generation ---
 
 async function generateHeroDino() {
@@ -109,7 +160,7 @@ async function generateHeroDino() {
   // This full-rectangle texture gets UV-mapped onto the traced trex outline.
   // Eye position is tuned to land on the T-Rex's head (~12%, 18% from top-left).
   const tw = 704, th = 384; // half-res for performance
-  const eyeX = Math.round(tw * 0.12), eyeY = Math.round(th * 0.18);
+  const eyeX = Math.round(tw * 0.13), eyeY = Math.round(th * 0.12);
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${tw}" height="${th}" viewBox="0 0 ${tw} ${th}">
     <defs>
@@ -244,6 +295,11 @@ app.get('/api/config', (req, res) => {
   const mode = req.query.mode || 'turtles';
   const modeConfig = config[mode] || config.turtles || {};
   res.json({ title: modeConfig.title, heroName: modeConfig.heroName });
+});
+
+// Dino SVG paths (traced outlines for 3D shapes and coloring pages)
+app.get('/api/dino-paths', (req, res) => {
+  res.json(dinoSvgPaths);
 });
 
 // Serve saved drawings as static files
@@ -611,7 +667,7 @@ app.use((err, req, res, next) => {
 
 // --- Start ---
 
-Promise.all([generateHeroTurtle(), generateHeroDino()]).then(() => {
+Promise.all([generateHeroTurtle(), generateHeroDino(), traceAllDinos()]).then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Event code: ${EVENT_CODE}`);

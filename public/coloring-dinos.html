@@ -93,10 +93,9 @@
     background-image: radial-gradient(circle, #ccc 0.6px, transparent 0.6px);
     background-size: 7px 7px;
   }
-  .dino-img {
+  .dino-svg {
     width: 100%;
     height: 100%;
-    object-fit: contain;
     position: relative;
     z-index: 1;
   }
@@ -153,7 +152,7 @@
 <div class="page" id="page-trex">
   <div class="page-title">Color the T-Rex!</div>
   <div class="dot-indicator" id="dots-trex"></div>
-  <div class="dino-container"><img class="dino-img" src="/trex.png" alt="T-Rex outline"></div>
+  <div class="dino-container"><svg class="dino-svg" id="svg-trex"></svg></div>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -164,7 +163,7 @@
 <div class="page hidden" id="page-triceratops">
   <div class="page-title">Color the Triceratops!</div>
   <div class="dot-indicator" id="dots-triceratops"></div>
-  <div class="dino-container"><img class="dino-img" src="/tric.png" alt="Triceratops outline"></div>
+  <div class="dino-container"><svg class="dino-svg" id="svg-triceratops"></svg></div>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -175,7 +174,7 @@
 <div class="page hidden" id="page-brachiosaurus">
   <div class="page-title">Color the Brachiosaurus!</div>
   <div class="dot-indicator" id="dots-brachiosaurus"></div>
-  <div class="dino-container"><img class="dino-img" src="/brach.png" alt="Brachiosaurus outline"></div>
+  <div class="dino-container"><svg class="dino-svg" id="svg-brachiosaurus"></svg></div>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -186,6 +185,31 @@
   // Dot counts for species detection (printed in upper-right corner)
   var DOTS = { trex: 1, triceratops: 2, brachiosaurus: 3 };
 
+
+  // Fetch SVG paths from server and render into each page
+  fetch('/api/dino-paths').then(function(r) { return r.json(); }).then(function(paths) {
+    ['trex', 'triceratops', 'brachiosaurus'].forEach(function(species) {
+      var info = paths[species];
+      if (!info) return;
+      var svgEl = document.getElementById('svg-' + species);
+      if (!svgEl) return;
+      svgEl.setAttribute('viewBox', '0 0 ' + info.width + ' ' + info.height);
+      svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      // White fill inside the outline (for coloring)
+      var fillPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      fillPath.setAttribute('d', info.path);
+      fillPath.setAttribute('fill', 'white');
+      fillPath.setAttribute('stroke', 'none');
+      svgEl.appendChild(fillPath);
+      // Black outline on top
+      var strokePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      strokePath.setAttribute('d', info.path);
+      strokePath.setAttribute('fill', 'none');
+      strokePath.setAttribute('stroke', '#000');
+      strokePath.setAttribute('stroke-width', '3');
+      svgEl.appendChild(strokePath);
+    });
+  });
 
   // Render dot indicators on each page
   ['trex', 'triceratops', 'brachiosaurus'].forEach(function(species) {
