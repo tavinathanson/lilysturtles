@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Upload — Dinosaurs</title>
+  <title>Remote — Dinosaurs</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -42,8 +42,7 @@
       margin-bottom: 6px;
       font-size: 14px;
     }
-    input[type="text"],
-    input[type="file"] {
+    input[type="text"], select {
       width: 100%;
       padding: 14px;
       border: 2px solid #ddd;
@@ -52,29 +51,13 @@
       margin-bottom: 18px;
       -webkit-appearance: none;
       appearance: none;
+      background: white;
     }
-    input[type="text"]:focus {
+    input[type="text"]:focus, select:focus {
       outline: none;
       border-color: #8B6914;
     }
-    input[type="file"] {
-      display: none;
-    }
-    .photo-btn {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      border: 2px dashed #8B6914;
-      border-radius: 12px;
-      font-size: 16px;
-      margin-bottom: 18px;
-      background: #fdf6e3;
-      color: #6d5210;
-      text-align: center;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    button {
+    button.primary {
       width: 100%;
       padding: 16px;
       background: #8B6914;
@@ -87,11 +70,8 @@
       min-height: 52px;
       transition: background 0.2s;
     }
-    button:active { background: #6d5210; }
-    button:disabled {
-      background: #999;
-      cursor: not-allowed;
-    }
+    button.primary:active { background: #6d5210; }
+    button.primary:disabled { background: #999; cursor: not-allowed; }
     .message {
       text-align: center;
       padding: 12px;
@@ -100,34 +80,15 @@
       font-size: 15px;
       display: none;
     }
-    .message.error {
-      display: block;
-      background: #ffe0e0;
-      color: #c00;
-    }
-    .message.success {
-      display: block;
-      background: #e0ffe0;
-      color: #060;
-    }
-    .message.hint {
-      display: block;
-      background: #fff3cd;
-      color: #856404;
-    }
+    .message.error { display: block; background: #ffe0e0; color: #c00; }
     .control-panel { display: none; text-align: center; }
     .control-panel h2 {
       color: #5a3e1b;
       font-size: 22px;
-      margin-bottom: 4px;
+      margin-bottom: 16px;
     }
-    .control-panel .success-msg {
-      color: #060;
-      background: #e0ffe0;
-      border-radius: 10px;
-      padding: 10px;
-      font-size: 15px;
-      margin-bottom: 20px;
+    .dino-select-wrap {
+      margin-bottom: 18px;
     }
     .action-btn {
       width: 100%;
@@ -152,32 +113,35 @@
     .action-btn.closer  { background: #8B6914; }
     .action-btn.hat     { background: #d4609a; }
     .action-btn.spin    { background: #e08830; }
+    .nav-link {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      color: #8B6914;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .nav-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Dinosaurs</h1>
-    <p class="subtitle">Add your dinosaur to the landscape!</p>
-    <form id="uploadForm">
-      <input type="hidden" name="mode" value="dino">
+    <h1>Dino Remote</h1>
+    <p class="subtitle">Control any dinosaur on the landscape!</p>
 
-      <label for="name">Dinosaur Name</label>
-      <input type="text" id="name" name="name" required maxlength="30" placeholder="What's your dinosaur called?">
-
-      <label for="photo">Dinosaur Photo</label>
-      <label for="photo" class="photo-btn" id="photoLabel">📷 Take Photo</label>
-      <input type="file" id="photo" name="photo" accept="image/*" capture="environment" required>
-
+    <div id="codeForm">
       <label for="eventCode">Dino Code</label>
-      <input type="text" id="eventCode" name="eventCode" required inputmode="numeric" pattern="\d*" placeholder="4-digit code" autocomplete="off">
-
-      <button type="submit" id="submitBtn">Add My Dinosaur!</button>
-    </form>
+      <input type="text" id="eventCode" inputmode="numeric" pattern="\d*" placeholder="4-digit code" autocomplete="off">
+      <button class="primary" id="connectBtn">Connect</button>
+    </div>
     <div class="message" id="message"></div>
 
     <div class="control-panel" id="controlPanel">
-      <h2 id="dinoNameDisplay"></h2>
-      <div class="success-msg">Your dinosaur is roaming the landscape!</div>
+      <div class="dino-select-wrap">
+        <label for="dinoSelect">Choose a dinosaur</label>
+        <select id="dinoSelect"></select>
+      </div>
       <button class="action-btn closer" data-action="come_closer" data-cooldown="8">
         Come Closer
       </button>
@@ -189,107 +153,111 @@
       </button>
     </div>
 
-    <a href="remote-dinos.html" style="display:block;text-align:center;margin-top:18px;color:#8B6914;font-size:14px;font-weight:600;text-decoration:none;">Control any dinosaur</a>
+    <a href="upload-dinos.html" class="nav-link">Upload a dinosaur instead</a>
   </div>
 
   <script>
-    const form = document.getElementById('uploadForm');
     const msg = document.getElementById('message');
-    const btn = document.getElementById('submitBtn');
+    const codeForm = document.getElementById('codeForm');
+    const connectBtn = document.getElementById('connectBtn');
     const controlPanel = document.getElementById('controlPanel');
-    const dinoNameDisplay = document.getElementById('dinoNameDisplay');
+    const dinoSelect = document.getElementById('dinoSelect');
+    const codeInput = document.getElementById('eventCode');
 
-    let dinoId = null;
-    let savedEventCode = '';
+    let eventCode = '';
+    let pollTimer = null;
 
     // Fetch title from config
     fetch('/api/config?mode=dinos').then(r => r.json()).then(cfg => {
       const t = cfg.title || 'Dinosaurs';
-      document.title = 'Upload — ' + t;
-      document.querySelector('h1').textContent = t;
+      document.title = 'Remote — ' + t;
+      document.querySelector('h1').textContent = t + ' Remote';
     }).catch(() => {});
 
-    // Restore saved event code
+    // Restore saved code
     const stored = localStorage.getItem('dinoCode');
-    if (stored) document.getElementById('eventCode').value = stored;
+    if (stored) codeInput.value = stored;
 
-    document.getElementById('photo').addEventListener('change', function() {
-      const label = document.getElementById('photoLabel');
-      label.textContent = this.files[0] ? '✅ ' + this.files[0].name : '📷 Take Photo';
-    });
+    connectBtn.addEventListener('click', connect);
+    codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      msg.className = 'message';
-      msg.style.display = 'none';
-      btn.disabled = true;
-      btn.textContent = 'Uploading...';
-
-      const formData = new FormData(form);
+    async function connect() {
+      const code = codeInput.value.trim();
+      if (!code) return;
+      connectBtn.disabled = true;
+      connectBtn.textContent = '...';
+      msg.className = 'message'; msg.style.display = 'none';
 
       try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
+        const res = await fetch(`/api/dinos?eventCode=${encodeURIComponent(code)}&knownIds=`);
+        if (res.ok) {
+          eventCode = code;
+          localStorage.setItem('dinoCode', code);
+          codeForm.style.display = 'none';
+          controlPanel.style.display = 'block';
+          refreshDinoList();
+          pollTimer = setInterval(refreshDinoList, 5000);
+        } else if (res.status === 403) {
+          msg.className = 'message error'; msg.textContent = 'Wrong code.'; msg.style.display = 'block';
+        } else if (res.status === 429) {
+          msg.className = 'message error'; msg.textContent = 'Too many attempts. Wait a moment.'; msg.style.display = 'block';
+        }
+      } catch {
+        msg.className = 'message error'; msg.textContent = 'Connection error.'; msg.style.display = 'block';
+      }
+      connectBtn.disabled = false;
+      connectBtn.textContent = 'Connect';
+    }
 
-        if (!res.ok) {
-          msg.className = 'message error';
-          msg.textContent = data.error || 'Upload failed.';
-          msg.style.display = 'block';
-          btn.disabled = false;
-          btn.textContent = 'Add My Dinosaur!';
+    async function refreshDinoList() {
+      try {
+        const res = await fetch(`/api/dinos?eventCode=${encodeURIComponent(eventCode)}&knownIds=`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const dinos = (data.dinos || []).filter(d => !d.isHero);
+        const prev = dinoSelect.value;
+        dinoSelect.innerHTML = '';
+        if (dinos.length === 0) {
+          dinoSelect.innerHTML = '<option value="">No dinosaurs yet</option>';
           return;
         }
-
-        savedEventCode = document.getElementById('eventCode').value;
-        localStorage.setItem('dinoCode', savedEventCode);
-        dinoId = data.id;
-
-        if (data.hint) {
-          msg.className = 'message hint';
-          msg.textContent = data.hint;
-          msg.style.display = 'block';
-        } else {
-          msg.style.display = 'none';
+        for (const d of dinos) {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = d.name || d.id;
+          dinoSelect.appendChild(opt);
         }
+        if (prev && [...dinoSelect.options].some(o => o.value === prev)) {
+          dinoSelect.value = prev;
+        }
+      } catch {}
+    }
 
-        form.style.display = 'none';
-        dinoNameDisplay.textContent = data.name;
-        controlPanel.style.display = 'block';
-      } catch (err) {
-        msg.className = 'message error';
-        msg.textContent = 'Network error. Please try again.';
-        msg.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Add My Dinosaur!';
-      }
-    });
-
-    // Action buttons with cooldown
+    // Action buttons with cooldown (same pattern as upload page)
     for (const actionBtn of controlPanel.querySelectorAll('.action-btn')) {
       actionBtn.addEventListener('click', async () => {
+        const dinoId = dinoSelect.value;
         if (actionBtn.disabled || !dinoId) return;
         const action = actionBtn.dataset.action;
         const cooldown = parseInt(actionBtn.dataset.cooldown, 10) * 1000;
 
         const allBtns = controlPanel.querySelectorAll('.action-btn');
         const savedLabels = new Map();
-        allBtns.forEach(b => {
-          savedLabels.set(b, b.textContent.trim());
-          b.disabled = true;
-        });
+        allBtns.forEach(b => { savedLabels.set(b, b.textContent.trim()); b.disabled = true; });
 
         try {
           const res = await fetch(`/api/turtle/${dinoId}/command`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, eventCode: savedEventCode }),
+            body: JSON.stringify({ action, eventCode }),
           });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
             if (data.error === 'Not found.') {
               msg.className = 'message error';
-              msg.textContent = 'Your dinosaur is no longer in the landscape.';
+              msg.textContent = 'That dinosaur is no longer on the landscape.';
               msg.style.display = 'block';
+              refreshDinoList();
             }
           }
         } catch {
@@ -298,22 +266,16 @@
           msg.style.display = 'block';
         }
 
-        const cooldownSec = cooldown / 1000;
-        let remaining = cooldownSec;
+        let remaining = cooldown / 1000;
         allBtns.forEach(b => b.textContent = `Wait ${remaining}s...`);
         const countdownId = setInterval(() => {
           remaining--;
-          if (remaining > 0) {
-            allBtns.forEach(b => b.textContent = `Wait ${remaining}s...`);
-          }
+          if (remaining > 0) allBtns.forEach(b => b.textContent = `Wait ${remaining}s...`);
         }, 1000);
 
         setTimeout(() => {
           clearInterval(countdownId);
-          allBtns.forEach(b => {
-            b.disabled = false;
-            b.textContent = savedLabels.get(b);
-          });
+          allBtns.forEach(b => { b.disabled = false; b.textContent = savedLabels.get(b); });
         }, cooldown);
       });
     }

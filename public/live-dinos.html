@@ -141,7 +141,7 @@
     let startTime = 0;
 
     // --- Arena ---
-    const ARENA = { xMin: -16, xMax: 16, zMin: -10, zMax: 16 };
+    const ARENA = { xMin: -16, xMax: 16, zMin: -10, zMax: 7 };
     const GROUND_Y = -6;
 
     // --- Scene ---
@@ -344,7 +344,7 @@
       } else {
         group.position.set(
           -8 + Math.random() * 16, GROUND_Y,
-          ARENA.zMax - 1
+          10
         );
       }
 
@@ -525,6 +525,24 @@
         }
       } else if (entry.boostTimer <= 0) {
         entry.wanderTimer = Math.min(entry.wanderTimer, 0.5);
+      }
+
+      // --- Separation: gentle push away from nearby dinos ---
+      const SEPARATION_DIST = 3.0;
+      for (const other of dinoMap.values()) {
+        if (other.id === entry.id) continue;
+        const sx = group.position.x - other.group.position.x;
+        const sz = group.position.z - other.group.position.z;
+        const sDist = Math.sqrt(sx * sx + sz * sz);
+        if (sDist < SEPARATION_DIST && sDist > 0.01) {
+          const pushStrength = (SEPARATION_DIST - sDist) / SEPARATION_DIST * 2.0 * dt;
+          group.position.x += (sx / sDist) * pushStrength;
+          group.position.z += (sz / sDist) * pushStrength;
+        } else if (sDist <= 0.01) {
+          // Overlapping exactly (e.g. same spawn point) — nudge randomly
+          group.position.x += (Math.random() - 0.5) * 0.5;
+          group.position.z += (Math.random() - 0.5) * 0.5;
+        }
       }
 
       // --- Wall clamping ---
@@ -816,7 +834,7 @@
         entry.boostTimer = 8;
         entry.boostTarget = {
           x: 0,
-          z: ARENA.zMax - 0.5,
+          z: ARENA.zMax - 1,
         };
       } else if (command === 'spin') {
         entry.spinRemaining = Math.PI * 6; // 3 full rotations
@@ -881,7 +899,7 @@
             // Auto-showcase new dinos
             if (dinoMap.size > 1 && !d.isHero) {
               entry.boostTimer = 6;
-              entry.boostTarget = { x: 0, z: ARENA.zMax - 1 };
+              entry.boostTarget = { x: 0, z: ARENA.zMax - 2 };
             }
           }
 
