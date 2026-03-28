@@ -8,9 +8,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a3a1a; }
-    #container { width: 100%; height: 100%; }
-    canvas { display: block; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #87CEEB; }
+    #container {
+      width: 100%; height: 100%;
+      position: relative;
+      /* Show full image pinned to top, above the 3D horizon */
+      background: #87CEEB url('/dino_bg.png') center top / contain no-repeat;
+    }
+    /* Fade edges to sky blue so image blends when viewport is wider */
+    #container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: linear-gradient(to right,
+        #87CEEB 0%, transparent 15%, transparent 85%, #87CEEB 100%);
+      pointer-events: none;
+    }
+    /* Blueish sky fog overlay to push bg back */
+    #container::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: rgba(135, 206, 235, 0.45);
+      pointer-events: none;
+    }
+    canvas { display: block; position: relative; z-index: 1; }
 
     #labels {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -122,15 +146,14 @@
 
     // --- Scene ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB);
-    // Sky gradient via fog
-    scene.fog = new THREE.FogExp2(0x9DC4E8, 0.012);
+    // Transparent canvas — CSS background shows dino_bg.png with sky-blue fade
+    scene.fog = new THREE.FogExp2(0x9DC4E8, 0.008);
 
     const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100);
     camera.position.set(0, 2, ARENA.zMax + 6);
     camera.lookAt(0, -1, 4);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(innerWidth, innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -201,37 +224,118 @@
       });
     }
 
-    // Moore-neighbor contour tracing on alpha channel
+    // Fill the interior of a shape defined by opaque pixels.
+    // Flood-fills from the edges (transparent) then inverts, so the
+    // outlined dino becomes a solid filled region for contour tracing.
+    function fillInterior(ctx, w, h, threshold = 64) {
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+
+      // Build binary mask: 1 = opaque (outline or fill), 0 = transparent
+      const mask = new Uint8Array(w * h);
+      for (let i = 0; i < w * h; i++) {
+        mask[i] = data[i * 4 + 3] > threshold ? 1 : 0;
+      }
+
+      // Flood-fill from edges to mark exterior transparent pixels as 2
+      const stack = [];
+      for (let x = 0; x < w; x++) { stack.push(x, 0); stack.push(x, h - 1); }
+      for (let y = 0; y < h; y++) { stack.push(0, y); stack.push(w - 1, y); }
+
+      while (stack.length > 0) {
+        const y = stack.pop(), x = stack.pop();
+        if (x < 0 || x >= w || y < 0 || y >= h) continue;
+        const idx = y * w + x;
+        if (mask[idx] !== 0) continue; // already opaque or visited
+        mask[idx] = 2; // mark as exterior
+        stack.push(x - 1, y); stack.push(x + 1, y);
+        stack.push(x, y - 1); stack.push(x, y + 1);
+      }
+
+      // Everything that's still 0 (transparent but NOT exterior) is interior — fill it
+      for (let i = 0; i < w * h; i++) {
+        if (mask[i] === 0) {
+          // Interior pixel — make it opaque white
+          data[i * 4] = 255;
+          data[i * 4 + 1] = 255;
+          data[i * 4 + 2] = 255;
+          data[i * 4 + 3] = 255;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    // Extract the outline of a filled shape by scanning for boundary pixels.
+    // Much simpler than Moore tracing — just collect all pixels where
+    // opaque meets transparent, then sort them into a contour order.
     function traceAlphaContour(ctx, w, h, threshold = 64) {
       const data = ctx.getImageData(0, 0, w, h).data;
       const opaque = (x, y) => x >= 0 && x < w && y >= 0 && y < h && data[(y * w + x) * 4 + 3] > threshold;
 
-      // Find first opaque pixel
-      let sx = -1, sy = -1;
-      outer: for (let y = 0; y < h; y++)
-        for (let x = 0; x < w; x++)
-          if (opaque(x, y)) { sx = x; sy = y; break outer; }
-      if (sx < 0) return [];
-
-      const dirs = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
-      const contour = [];
-      let cx = sx, cy = sy, dir = 7;
-
-      for (let step = 0; step < w * h * 2; step++) {
-        contour.push([cx, cy]);
-        let searchDir = (dir + 5) % 8;
-        let found = false;
-        for (let i = 0; i < 8; i++) {
-          const d = (searchDir + i) % 8;
-          const nx = cx + dirs[d][0], ny = cy + dirs[d][1];
-          if (opaque(nx, ny)) {
-            dir = d; cx = nx; cy = ny; found = true; break;
+      // Build a binary grid and find boundary pixels
+      const boundary = [];
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          if (opaque(x, y) && (!opaque(x-1,y) || !opaque(x+1,y) || !opaque(x,y-1) || !opaque(x,y+1))) {
+            boundary.push([x, y]);
           }
         }
-        if (!found) break;
-        if (cx === sx && cy === sy && contour.length > 2) break;
       }
-      return contour;
+      console.log(`  boundary pixels found: ${boundary.length}`);
+      if (boundary.length < 3) return boundary;
+
+      // Order boundary pixels into a contour using nearest-neighbor chain.
+      // Start from the topmost-leftmost boundary pixel.
+      const used = new Uint8Array(boundary.length);
+      const ordered = [];
+      // Find topmost-leftmost
+      let bestIdx = 0;
+      for (let i = 1; i < boundary.length; i++) {
+        if (boundary[i][1] < boundary[bestIdx][1] ||
+            (boundary[i][1] === boundary[bestIdx][1] && boundary[i][0] < boundary[bestIdx][0])) {
+          bestIdx = i;
+        }
+      }
+
+      // Build spatial lookup for fast nearest-neighbor
+      const cellSize = 4;
+      const gridW = Math.ceil(w / cellSize), gridH = Math.ceil(h / cellSize);
+      const grid = new Array(gridW * gridH);
+      for (let i = 0; i < boundary.length; i++) {
+        const gx = Math.floor(boundary[i][0] / cellSize);
+        const gy = Math.floor(boundary[i][1] / cellSize);
+        const key = gy * gridW + gx;
+        if (!grid[key]) grid[key] = [];
+        grid[key].push(i);
+      }
+
+      let ci = bestIdx;
+      for (let step = 0; step < boundary.length; step++) {
+        ordered.push(boundary[ci]);
+        used[ci] = 1;
+
+        // Find nearest unused boundary pixel
+        const px = boundary[ci][0], py = boundary[ci][1];
+        let bestDist = Infinity, bestNext = -1;
+        const gx = Math.floor(px / cellSize), gy = Math.floor(py / cellSize);
+        const searchR = 3; // search radius in grid cells
+        for (let dy = -searchR; dy <= searchR; dy++) {
+          for (let dx = -searchR; dx <= searchR; dx++) {
+            const key = (gy + dy) * gridW + (gx + dx);
+            if (key < 0 || key >= grid.length || !grid[key]) continue;
+            for (const ni of grid[key]) {
+              if (used[ni]) continue;
+              const d = (boundary[ni][0] - px) ** 2 + (boundary[ni][1] - py) ** 2;
+              if (d < bestDist) { bestDist = d; bestNext = ni; }
+            }
+          }
+        }
+        if (bestNext < 0) break;
+        ci = bestNext;
+      }
+
+      console.log(`  ordered contour points: ${ordered.length}`);
+      return ordered;
     }
 
     // Ramer-Douglas-Peucker simplification
@@ -276,10 +380,25 @@
       if (shapeCache.has(species)) return shapeCache.get(species);
       const pngUrl = SPECIES_PNGS[species] || SPECIES_PNGS.trex;
       const { ctx, width, height } = await loadImageToCanvas(pngUrl);
+      fillInterior(ctx, width, height);
+      // Debug: count opaque pixels after fill
+      const dbgData = ctx.getImageData(0, 0, width, height).data;
+      let opaqueCount = 0;
+      for (let i = 0; i < width * height; i++) if (dbgData[i * 4 + 3] > 64) opaqueCount++;
+      console.log(`[${species}] opaque pixels after fill: ${opaqueCount} / ${width * height}`);
       let contour = traceAlphaContour(ctx, width, height);
-      contour = simplifyContour(contour, 1.5);
-      const shape = contourToShape(contour, height, 5.0);
-      const result = { shape };
+      console.log(`[${species}] raw contour points: ${contour.length}`);
+      contour = simplifyContour(contour, 3.0);
+      console.log(`[${species}] simplified contour points: ${contour.length}`);
+      const targetHeight = 3.0;
+      const scale = targetHeight / height;
+      const shape = contourToShape(contour, height, targetHeight);
+      // Store full image bounds in shape-coordinate space for UV mapping
+      const result = {
+        shape,
+        imgWidth: width * scale,   // full image width in shape units
+        imgHeight: targetHeight,    // full image height in shape units
+      };
       shapeCache.set(species, result);
       return result;
     }
@@ -287,26 +406,17 @@
     // ===================================================================
     // CUSTOM UV GENERATOR for ExtrudeGeometry
     // ===================================================================
-    function makeUVGenerator(shape) {
-      const pts = shape.getPoints();
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (const p of pts) {
-        if (p.x < minX) minX = p.x;
-        if (p.x > maxX) maxX = p.x;
-        if (p.y < minY) minY = p.y;
-        if (p.y > maxY) maxY = p.y;
-      }
-      const rangeX = maxX - minX || 1;
-      const rangeY = maxY - minY || 1;
+    // Uses full image bounds so the texture maps 1:1 with the source PNG
+    function makeUVGenerator(imgWidth, imgHeight) {
       return {
         generateTopUV(geometry, vertices, indexA, indexB, indexC) {
           const ax = vertices[indexA * 3], ay = vertices[indexA * 3 + 1];
           const bx = vertices[indexB * 3], by = vertices[indexB * 3 + 1];
           const cx = vertices[indexC * 3], cy = vertices[indexC * 3 + 1];
           return [
-            new THREE.Vector2((ax - minX) / rangeX, (ay - minY) / rangeY),
-            new THREE.Vector2((bx - minX) / rangeX, (by - minY) / rangeY),
-            new THREE.Vector2((cx - minX) / rangeX, (cy - minY) / rangeY),
+            new THREE.Vector2(ax / imgWidth, ay / imgHeight),
+            new THREE.Vector2(bx / imgWidth, by / imgHeight),
+            new THREE.Vector2(cx / imgWidth, cy / imgHeight),
           ];
         },
         generateSideWallUV() {
@@ -357,13 +467,14 @@
       const scale = DINO_SCALES[species] || 1.0;
 
       // Get traced shape from species PNG
-      const { shape } = await getSpeciesShape(species);
+      const { shape, imgWidth, imgHeight } = await getSpeciesShape(species);
 
       const geometry = new THREE.ExtrudeGeometry(shape, {
         depth: 0.3,
         bevelEnabled: false,
-        UVGenerator: makeUVGenerator(shape),
+        UVGenerator: makeUVGenerator(imgWidth, imgHeight),
       });
+      console.log(`[${species}] geometry vertices: ${geometry.attributes.position.count}, triangles: ${geometry.index ? geometry.index.count / 3 : 'none'}`);
 
       // Build material
       let frontBackMat;
@@ -403,11 +514,16 @@
       scene.add(group);
 
       const dinoHeight = (bb.max.y - bb.min.y) * scale;
-      group.position.set(
-        ARENA.xMin + Math.random() * (ARENA.xMax - ARENA.xMin),
-        GROUND_Y,
-        ARENA.zMin + Math.random() * (ARENA.zMax - ARENA.zMin)
-      );
+      // Hero dino spawns centrally; others spawn randomly
+      if (serverData.isHero) {
+        group.position.set(0, GROUND_Y, 6);
+      } else {
+        group.position.set(
+          -8 + Math.random() * 16,
+          GROUND_Y,
+          ARENA.zMin + 3 + Math.random() * (ARENA.zMax - ARENA.zMin - 6)
+        );
+      }
 
       const entry = {
         id: serverData.id,
@@ -669,114 +785,7 @@
     createTree(-12, 8, 3.5, 'pine');
     createTree(12, 6, 2.0, 'round');
 
-    // --- Volcano ---
-    function buildVolcano() {
-      const volcGroup = new THREE.Group();
-
-      // Dark rocky material
-      const rockMat2 = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.95 });
-      const darkRockMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.95 });
-
-      // Main cone - truncated (open top = crater)
-      const cone = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.8, 7, 12, 16, 1, true),
-        rockMat2
-      );
-      cone.position.y = 6;
-      volcGroup.add(cone);
-
-      // Base skirt (wider, gives it a natural slope)
-      const base = new THREE.Mesh(
-        new THREE.CylinderGeometry(7, 9, 2, 16, 1, true),
-        new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.95 })
-      );
-      base.position.y = 1;
-      volcGroup.add(base);
-
-      // Crater rim (ring at top)
-      const rim = new THREE.Mesh(
-        new THREE.TorusGeometry(2.0, 0.5, 8, 16),
-        darkRockMat
-      );
-      rim.rotation.x = Math.PI / 2;
-      rim.position.y = 12;
-      volcGroup.add(rim);
-
-      // Crater interior (dark cylinder inside)
-      const craterInner = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.8, 1.5, 2, 12),
-        darkRockMat
-      );
-      craterInner.position.y = 11;
-      volcGroup.add(craterInner);
-
-      // Lava pool (glowing disc inside crater)
-      const lavaPool = new THREE.Mesh(
-        new THREE.CircleGeometry(1.5, 12),
-        new THREE.MeshStandardMaterial({
-          color: 0xff6600, emissive: 0xff4400, emissiveIntensity: 3.0,
-        })
-      );
-      lavaPool.rotation.x = -Math.PI / 2;
-      lavaPool.position.y = 10.2;
-      volcGroup.add(lavaPool);
-
-      // Lava flows down the sides (3D tube geometry)
-      const lavaMat = new THREE.MeshStandardMaterial({
-        color: 0xff4400, emissive: 0xff3300, emissiveIntensity: 2.0,
-        roughness: 0.4,
-      });
-      for (let i = 0; i < 4; i++) {
-        const angle = (i / 4) * Math.PI * 2 + 0.3;
-        const points = [];
-        const topR = 1.8;
-        for (let t = 0; t <= 1; t += 0.1) {
-          const r = topR + t * (7 - topR) * 1.1;
-          const y = 12 - t * 10;
-          const wiggle = Math.sin(t * 5 + i) * 0.3;
-          points.push(new THREE.Vector3(
-            Math.cos(angle + wiggle * 0.1) * r,
-            y,
-            Math.sin(angle + wiggle * 0.1) * r
-          ));
-        }
-        const curve = new THREE.CatmullRomCurve3(points);
-        const tubeGeo = new THREE.TubeGeometry(curve, 12, 0.25 - i * 0.03, 6, false);
-        const tube = new THREE.Mesh(tubeGeo, lavaMat);
-        volcGroup.add(tube);
-      }
-
-      // Point light for lava glow
-      const lavaLight = new THREE.PointLight(0xff6600, 2.5, 30);
-      lavaLight.position.y = 12;
-      volcGroup.add(lavaLight);
-
-      // Secondary warm light lower
-      const lavaLight2 = new THREE.PointLight(0xff4400, 1.0, 15);
-      lavaLight2.position.y = 5;
-      volcGroup.add(lavaLight2);
-
-      volcGroup.position.set(-10, GROUND_Y, -6);
-      scene.add(volcGroup);
-      return { glow: lavaPool, lavaLight };
-    }
-    const volcano = buildVolcano();
-
-    // --- Smoke particles from volcano ---
-    const SMOKE_COUNT = 30;
-    const smokePositions = new Float32Array(SMOKE_COUNT * 3);
-    for (let i = 0; i < SMOKE_COUNT; i++) {
-      smokePositions[i * 3] = -10 + (Math.random() - 0.5) * 2;
-      smokePositions[i * 3 + 1] = GROUND_Y + 12 + Math.random() * 5;
-      smokePositions[i * 3 + 2] = -6 + (Math.random() - 0.5) * 2;
-    }
-    const smokeGeo = new THREE.BufferGeometry();
-    smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePositions, 3));
-    const smokeMat = new THREE.PointsMaterial({
-      color: 0x888888, size: 0.4, transparent: true, opacity: 0.3, depthWrite: false
-    });
-    const smoke = new THREE.Points(smokeGeo, smokeMat);
-    scene.add(smoke);
+    // (volcano removed)
 
     // --- Dust/pollen particles ---
     const DUST_COUNT = 40;
@@ -893,19 +902,6 @@
 
     // --- Update particles ---
     function updateParticles(dt, time) {
-      // Smoke rises from volcano
-      const sp = smokeGeo.attributes.position.array;
-      for (let i = 0; i < SMOKE_COUNT; i++) {
-        sp[i * 3 + 1] += dt * 1.5;
-        sp[i * 3] += Math.sin(time + i) * dt * 0.3;
-        if (sp[i * 3 + 1] > GROUND_Y + 18) {
-          sp[i * 3] = -10 + (Math.random() - 0.5) * 2;
-          sp[i * 3 + 1] = GROUND_Y + 12;
-          sp[i * 3 + 2] = -6 + (Math.random() - 0.5) * 2;
-        }
-      }
-      smokeGeo.attributes.position.needsUpdate = true;
-
       // Dust drifts slowly
       const dp = dustGeo.attributes.position.array;
       for (let i = 0; i < DUST_COUNT; i++) {
@@ -916,10 +912,6 @@
         }
       }
       dustGeo.attributes.position.needsUpdate = true;
-
-      // Volcano lava glow pulse
-      volcano.glow.material.emissiveIntensity = 2.5 + Math.sin(time * 1.5) * 0.8;
-      volcano.lavaLight.intensity = 1.5 + Math.sin(time * 1.8) * 0.5;
     }
 
     // ===================================================================

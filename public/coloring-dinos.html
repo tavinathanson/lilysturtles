@@ -82,11 +82,23 @@
     flex: 1;
     min-height: 0;
   }
-  .dino-img {
+  .dino-container {
     width: 100%;
     flex: 1;
     min-height: 0;
+    position: relative;
+    /* Light gray dot grid — shows through transparent PNG areas.
+       Prints as subtle dots outside the dino, stays above the 200/255
+       detection threshold so image processing ignores it. */
+    background-image: radial-gradient(circle, #ccc 0.6px, transparent 0.6px);
+    background-size: 7px 7px;
+  }
+  .dino-img {
+    width: 100%;
+    height: 100%;
     object-fit: contain;
+    position: relative;
+    z-index: 1;
   }
   .dot-indicator {
     align-self: flex-end;
@@ -141,7 +153,7 @@
 <div class="page" id="page-trex">
   <div class="page-title">Color the T-Rex!</div>
   <div class="dot-indicator" id="dots-trex"></div>
-  <img class="dino-img" src="/trex.png" alt="T-Rex outline">
+  <div class="dino-container"><img class="dino-img" src="/trex.png" alt="T-Rex outline"></div>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -152,7 +164,7 @@
 <div class="page hidden" id="page-triceratops">
   <div class="page-title">Color the Triceratops!</div>
   <div class="dot-indicator" id="dots-triceratops"></div>
-  <img class="dino-img" src="/tric.png" alt="Triceratops outline">
+  <div class="dino-container"><img class="dino-img" src="/tric.png" alt="Triceratops outline"></div>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
@@ -163,7 +175,7 @@
 <div class="page hidden" id="page-brachiosaurus">
   <div class="page-title">Color the Brachiosaurus!</div>
   <div class="dot-indicator" id="dots-brachiosaurus"></div>
-  <img class="dino-img" src="/brach.png" alt="Brachiosaurus outline">
+  <div class="dino-container"><img class="dino-img" src="/brach.png" alt="Brachiosaurus outline"></div>
   <div class="name-line">
     <span>Dinosaur's name:</span>
     <span class="line">&nbsp;</span>
