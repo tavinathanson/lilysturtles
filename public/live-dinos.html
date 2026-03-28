@@ -534,14 +534,12 @@
       // --- Apply visual rotation (heading + species facing offset) ---
       group.rotation.y = entry.heading + facingOffset;
 
-      // --- Walking animation ---
-      const moving = dist > 0.5 && Math.abs(entry.heading - Math.atan2(dx, dz)) < Math.PI * 0.5;
-      const walkRate = moving ? 5 + moveSpeed * 8 : 2;
+      // --- Walking animation (always bounce — dinos are always on the move) ---
+      const walkRate = 5 + moveSpeed * 8;
       entry.walkPhase += dt * walkRate;
       const rock = Math.sin(entry.walkPhase) * 0.05;
       const sway = Math.sin(entry.walkPhase * 0.5) * 0.03;
-      const bob = moving ? Math.abs(Math.sin(entry.walkPhase)) * 0.10
-                         : Math.abs(Math.sin(entry.walkPhase)) * 0.03;
+      const bob = Math.abs(Math.sin(entry.walkPhase)) * 0.10;
       group.rotation.x = rock;
       group.rotation.z = sway;
       group.position.y = GROUND_Y + bob;

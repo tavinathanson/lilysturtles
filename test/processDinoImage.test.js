@@ -44,7 +44,17 @@ function countVisible(data) {
  * @param {number} pageW - Output image width
  * @param {number} pageH - Output image height
  */
-async function makeDinoPage(species, fillColor = 'red', pageW = 800, pageH = 1000) {
+/**
+ * @param {string} species
+ * @param {string} fillColor - Base fill for the dino body
+ * @param {number} pageW
+ * @param {number} pageH
+ * @param {Array<{type: string, color: string, cx?: number, cy?: number, r?: number,
+ *   x?: number, y?: number, w?: number, h?: number, points?: string}>} innerShapes
+ *   Shapes drawn on top of the fill, INSIDE the dino bounding box.
+ *   Coordinates are fractions (0–1) of the dino bounding box.
+ */
+async function makeDinoPage(species, fillColor = 'red', pageW = 800, pageH = 1000, innerShapes = []) {
   const DOTS = { trex: 1, triceratops: 2, brachiosaurus: 3 };
   const PNG_FILES = {
     trex: 'trex.png',
@@ -91,6 +101,42 @@ async function makeDinoPage(species, fillColor = 'red', pageW = 800, pageH = 100
     { input: silhouetteMask, blend: 'dest-in' }
   ]).png().toBuffer();
 
+  // Build inner shapes (kid's drawings) on top of the dino fill.
+  // Coordinates are fractions of the dino bounding box.
+  let innerShapeLayers = [];
+  for (const shape of innerShapes) {
+    let svgContent = '';
+    if (shape.type === 'circle') {
+      const px = Math.round(shape.cx * dinoW);
+      const py = Math.round(shape.cy * dinoH);
+      const pr = Math.round(shape.r * Math.min(dinoW, dinoH));
+      svgContent = `<circle cx="${px}" cy="${py}" r="${pr}" fill="${shape.color}"/>`;
+    } else if (shape.type === 'rect') {
+      const px = Math.round(shape.x * dinoW);
+      const py = Math.round(shape.y * dinoH);
+      const pw = Math.round(shape.w * dinoW);
+      const ph = Math.round(shape.h * dinoH);
+      svgContent = `<rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="${shape.color}"/>`;
+    } else if (shape.type === 'star') {
+      // 5-point star centered at (cx, cy) with radius r
+      const px = shape.cx * dinoW;
+      const py = shape.cy * dinoH;
+      const pr = shape.r * Math.min(dinoW, dinoH);
+      const ir = pr * 0.4; // inner radius
+      let pts = [];
+      for (let i = 0; i < 10; i++) {
+        const angle = (i * Math.PI / 5) - Math.PI / 2;
+        const radius = i % 2 === 0 ? pr : ir;
+        pts.push(`${(px + radius * Math.cos(angle)).toFixed(1)},${(py + radius * Math.sin(angle)).toFixed(1)}`);
+      }
+      svgContent = `<polygon points="${pts.join(' ')}" fill="${shape.color}"/>`;
+    }
+    if (svgContent) {
+      const svg = `<svg width="${dinoW}" height="${dinoH}" xmlns="http://www.w3.org/2000/svg">${svgContent}</svg>`;
+      innerShapeLayers.push(await sharp(Buffer.from(svg)).png().toBuffer());
+    }
+  }
+
   // Build the dino outline (original PNG resized, black lines on transparent)
   const dinoOutline = await sharp(pngPath)
     .resize(dinoW, dinoH)
@@ -129,6 +175,8 @@ async function makeDinoPage(species, fillColor = 'red', pageW = 800, pageH = 100
       { input: coloredDino, top: dinoY, left: dinoX },
       // Dino outline on top
       { input: dinoOutline, top: dinoY, left: dinoX },
+      // Inner shapes (kid's drawings) ON TOP of the outline — like a kid drawing
+      ...innerShapeLayers.map(buf => ({ input: buf, top: dinoY, left: dinoX })),
       // Species dots in upper-right
       { input: indicatorLayer, top: 20, left: pageW - indicatorW - 20 },
     ])
@@ -243,5 +291,162 @@ describe('processDinoImage — synthetic coloring pages with dot grid', () => {
     const { width, height } = await decodeResult(result);
     assert.strictEqual(width, 1408);
     assert.strictEqual(height, 768);
+  });
+});
+
+// Helper: count pixels of a specific color in output
+function countColorPixels(data, testFn) {
+  let count = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (testFn(data[i], data[i + 1], data[i + 2], data[i + 3])) count++;
+  }
+  return count;
+}
+
+describe('processDinoImage — inner drawings preserve shape proportions', () => {
+
+  it('blue circle drawn on trex body occupies correct proportion of output', async () => {
+    // Draw a big blue circle on the trex torso area (upper-center of bbox)
+    const page = await makeDinoPage('trex', 'white', 800, 1000, [
+      { type: 'circle', cx: 0.4, cy: 0.3, r: 0.25, color: '#0000ff' },
+    ]);
+    await saveDebug('trex_circle_input.png', page);
+
+    const result = await processDinoImage(page);
+    await saveDebug('trex_circle_output.png', Buffer.from(
+      result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
+
+    assert.strictEqual(result.dinoDetected, true);
+    const { data, width, height } = await decodeResult(result);
+    const total = width * height;
+
+    // Loosen threshold — resizing softens pure blue
+    const bluePixels = countColorPixels(data, (r, g, b) => b > 120 && r < 120 && g < 120);
+    const bluePct = bluePixels / total * 100;
+
+    // The circle extends partly outside the dino body where it gets clipped by
+    // the outline, so only a fraction is visible. Expect 1-15%.
+    assert.ok(bluePct > 0.5, `blue circle should be >0.5% of output, got ${bluePct.toFixed(1)}%`);
+    assert.ok(bluePct < 20, `blue circle should be <20% of output, got ${bluePct.toFixed(1)}%`);
+    console.log(`  blue circle: ${bluePct.toFixed(1)}% of output`);
+  });
+
+  it('large red rectangle covers significant portion of brachiosaurus output', async () => {
+    // Big rectangle covering the center-upper body area
+    const page = await makeDinoPage('brachiosaurus', 'white', 800, 1000, [
+      { type: 'rect', x: 0.2, y: 0.15, w: 0.5, h: 0.5, color: '#ff0000' },
+    ]);
+    await saveDebug('brach_rect_input.png', page);
+
+    const result = await processDinoImage(page);
+    await saveDebug('brach_rect_output.png', Buffer.from(
+      result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
+
+    assert.strictEqual(result.dinoDetected, true);
+    const { data, width, height } = await decodeResult(result);
+    const total = width * height;
+
+    const redPixels = countColorPixels(data, (r, g, b) => r > 120 && g < 120 && b < 120);
+    const redPct = redPixels / total * 100;
+
+    // Rect area = 0.5 * 0.5 = 25% of bbox
+    assert.ok(redPct > 5, `red rect should be >5% of output, got ${redPct.toFixed(1)}%`);
+    assert.ok(redPct < 35, `red rect should be <35% of output, got ${redPct.toFixed(1)}%`);
+    console.log(`  red rectangle: ${redPct.toFixed(1)}% of output (expected ~15-25%)`);
+  });
+
+  it('yellow star drawn on triceratops appears at correct scale in output', async () => {
+    // Large yellow star on the triceratops body
+    const page = await makeDinoPage('triceratops', 'white', 800, 1000, [
+      { type: 'star', cx: 0.5, cy: 0.35, r: 0.3, color: '#ffff00' },
+    ]);
+    await saveDebug('tric_star_input.png', page);
+
+    const result = await processDinoImage(page);
+    await saveDebug('tric_star_output.png', Buffer.from(
+      result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
+
+    assert.strictEqual(result.dinoDetected, true);
+    const { data, width, height } = await decodeResult(result);
+    const total = width * height;
+
+    // Yellow = high R + high G, low B (loosen thresholds)
+    const yellowPixels = countColorPixels(data, (r, g, b) => r > 180 && g > 180 && b < 120);
+    const yellowPct = yellowPixels / total * 100;
+
+    assert.ok(yellowPct > 1, `yellow star should be >1% of output, got ${yellowPct.toFixed(1)}%`);
+    assert.ok(yellowPct < 20, `yellow star should be <20% of output, got ${yellowPct.toFixed(1)}%`);
+    console.log(`  yellow star: ${yellowPct.toFixed(1)}% of output (expected ~5-10%)`);
+  });
+
+  it('small circle vs large circle have correct relative sizes', async () => {
+    // Both on the trex torso — small r=0.1, large r=0.2 (area ratio should be ~4x)
+    const smallPage = await makeDinoPage('trex', 'white', 800, 1000, [
+      { type: 'circle', cx: 0.4, cy: 0.3, r: 0.1, color: '#0000ff' },
+    ]);
+    const largePage = await makeDinoPage('trex', 'white', 800, 1000, [
+      { type: 'circle', cx: 0.4, cy: 0.3, r: 0.2, color: '#0000ff' },
+    ]);
+
+    const smallResult = await processDinoImage(smallPage);
+    const largeResult = await processDinoImage(largePage);
+
+    const smallDec = await decodeResult(smallResult);
+    const largeDec = await decodeResult(largeResult);
+
+    const isBlue = (r, g, b) => b > 120 && r < 120 && g < 120;
+    const smallBlue = countColorPixels(smallDec.data, isBlue);
+    const largeBlue = countColorPixels(largeDec.data, isBlue);
+
+    assert.ok(smallBlue > 0, `small circle should have some blue pixels, got ${smallBlue}`);
+    assert.ok(largeBlue > 0, `large circle should have some blue pixels, got ${largeBlue}`);
+
+    // Large circle has 4x the area of small (radius ratio 2:1 → area ratio 4:1)
+    const ratio = largeBlue / smallBlue;
+    assert.ok(ratio > 2, `large/small ratio should be >2, got ${ratio.toFixed(1)}`);
+    assert.ok(ratio < 7, `large/small ratio should be <7, got ${ratio.toFixed(1)}`);
+    console.log(`  size ratio large/small: ${ratio.toFixed(1)}x (expected ~4x)`);
+  });
+
+  it('shape position is preserved (left half vs right half drawing)', async () => {
+    // Draw blue rect on left side, red rect on right side of the dino body
+    const page = await makeDinoPage('trex', 'white', 800, 1000, [
+      { type: 'rect', x: 0.05, y: 0.15, w: 0.25, h: 0.5, color: '#0000ff' },
+      { type: 'rect', x: 0.65, y: 0.15, w: 0.25, h: 0.5, color: '#ff0000' },
+    ]);
+    await saveDebug('trex_leftright_input.png', page);
+
+    const result = await processDinoImage(page);
+    await saveDebug('trex_leftright_output.png', Buffer.from(
+      result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
+
+    assert.strictEqual(result.dinoDetected, true);
+    const { data, width, height } = await decodeResult(result);
+    const midX = Math.floor(width / 2);
+
+    // Count blue pixels in left vs right half
+    let blueLeft = 0, blueRight = 0, redLeft = 0, redRight = 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+        const isBlue = b > 120 && r < 120 && g < 120;
+        const isRed = r > 120 && g < 120 && b < 120;
+        if (x < midX) {
+          if (isBlue) blueLeft++;
+          if (isRed) redLeft++;
+        } else {
+          if (isBlue) blueRight++;
+          if (isRed) redRight++;
+        }
+      }
+    }
+
+    // Blue should be mostly on the left, red mostly on the right
+    assert.ok(blueLeft > blueRight * 2,
+      `blue should be mostly left: left=${blueLeft}, right=${blueRight}`);
+    assert.ok(redRight > redLeft * 2,
+      `red should be mostly right: left=${redLeft}, right=${redRight}`);
+    console.log(`  blue L/R: ${blueLeft}/${blueRight}, red L/R: ${redLeft}/${redRight}`);
   });
 });
