@@ -379,7 +379,7 @@ app.post('/api/turtle/:id/command', (req, res) => {
   if (eventCode !== EVENT_CODE) {
     return res.status(403).json({ error: 'Wrong event code.' });
   }
-  const validActions = ['come_closer', 'birthday_cake', 'spin', 'party_hat'];
+  const validActions = ['come_closer', 'birthday_cake', 'spin', 'party_hat', 'jump'];
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: 'Invalid action.' });
   }

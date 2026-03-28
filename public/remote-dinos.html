@@ -113,6 +113,7 @@
     .action-btn.closer  { background: #8B6914; }
     .action-btn.hat     { background: #d4609a; }
     .action-btn.spin    { background: #e08830; }
+    .action-btn.jump    { background: #4a9a5a; }
     .nav-link {
       display: block;
       text-align: center;
@@ -150,6 +151,9 @@
       </button>
       <button class="action-btn spin" data-action="spin" data-cooldown="6">
         Do a Spin
+      </button>
+      <button class="action-btn jump" data-action="jump" data-cooldown="4">
+        Jump!
       </button>
     </div>
 
@@ -233,7 +237,32 @@
       } catch {}
     }
 
-    // Action buttons with cooldown (same pattern as upload page)
+    // Track cooldown per dino — switching dinos clears it
+    let cooldownDinoId = null;
+    let cooldownTimeout = null;
+    let cooldownInterval = null;
+
+    function clearCooldown() {
+      if (cooldownTimeout) clearTimeout(cooldownTimeout);
+      if (cooldownInterval) clearInterval(cooldownInterval);
+      cooldownTimeout = null;
+      cooldownInterval = null;
+      const allBtns = controlPanel.querySelectorAll('.action-btn');
+      allBtns.forEach(b => {
+        b.disabled = false;
+        b.textContent = b.dataset.label || b.textContent;
+      });
+    }
+
+    dinoSelect.addEventListener('change', () => {
+      if (dinoSelect.value !== cooldownDinoId) clearCooldown();
+    });
+
+    // Save original labels
+    controlPanel.querySelectorAll('.action-btn').forEach(b => {
+      b.dataset.label = b.textContent.trim();
+    });
+
     for (const actionBtn of controlPanel.querySelectorAll('.action-btn')) {
       actionBtn.addEventListener('click', async () => {
         const dinoId = dinoSelect.value;
@@ -242,8 +271,8 @@
         const cooldown = parseInt(actionBtn.dataset.cooldown, 10) * 1000;
 
         const allBtns = controlPanel.querySelectorAll('.action-btn');
-        const savedLabels = new Map();
-        allBtns.forEach(b => { savedLabels.set(b, b.textContent.trim()); b.disabled = true; });
+        allBtns.forEach(b => b.disabled = true);
+        cooldownDinoId = dinoId;
 
         try {
           const res = await fetch(`/api/turtle/${dinoId}/command`, {
@@ -268,14 +297,13 @@
 
         let remaining = cooldown / 1000;
         allBtns.forEach(b => b.textContent = `Wait ${remaining}s...`);
-        const countdownId = setInterval(() => {
+        cooldownInterval = setInterval(() => {
           remaining--;
           if (remaining > 0) allBtns.forEach(b => b.textContent = `Wait ${remaining}s...`);
         }, 1000);
 
-        setTimeout(() => {
-          clearInterval(countdownId);
-          allBtns.forEach(b => { b.disabled = false; b.textContent = savedLabels.get(b); });
+        cooldownTimeout = setTimeout(() => {
+          clearCooldown();
         }, cooldown);
       });
     }

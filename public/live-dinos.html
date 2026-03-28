@@ -12,18 +12,21 @@
     #container {
       width: 100%; height: 100%;
       position: relative;
+      background: #87CEEB;
       /* Show full image pinned to top, above the 3D horizon */
-      background: #87CEEB url('/dino_bg.png') center top / contain no-repeat;
     }
-    /* Fade edges to sky blue so image blends when viewport is wider */
-    #container::before {
-      content: '';
+    /* Fade edges and bottom to sky blue so image blends smoothly */
+    #bg-fade {
       position: absolute;
-      inset: 0;
-      z-index: 0;
-      background: linear-gradient(to right,
-        #87CEEB 0%, transparent 15%, transparent 85%, #87CEEB 100%);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60%;
+      z-index: 1;
       pointer-events: none;
+      /* Mask the image edges — fade is applied to the image itself via a sibling overlay
+         that matches the image dimensions, not the viewport */
+      display: none;
     }
     /* Blueish sky fog overlay to push bg back */
     #container::after {
@@ -34,11 +37,22 @@
       background: rgba(135, 206, 235, 0.45);
       pointer-events: none;
     }
-    canvas { display: block; position: relative; z-index: 1; }
+    #bg-img {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 75%;
+      width: auto;
+      z-index: 0;
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+    }
+    canvas { display: block; position: relative; z-index: 2; }
 
     #labels {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; overflow: hidden; z-index: 2;
+      pointer-events: none; overflow: hidden; z-index: 3;
     }
     #title-label {
       position: absolute;
@@ -94,7 +108,7 @@
   </style>
 </head>
 <body>
-  <div id="container"></div>
+  <div id="container"><img id="bg-img" src="/dino_bg.png" alt=""><div id="bg-fade"></div></div>
   <div id="labels"><div id="title-label">Dinosaurs</div></div>
 
   <div id="overlay">
@@ -359,7 +373,7 @@
         waypointZ: ARENA.zMin + Math.random() * (ARENA.zMax - ARENA.zMin),
         walkPhase: Math.random()*Math.PI*2,
         boostTimer: 0, boostTarget: null,
-        spinRemaining: 0,
+        spinRemaining: 0, jumpTimer: 0,
         partyHat: null, partyHatTimer: 0,
         label: null, labelCreatedAt: performance.now(),
         isHero: serverData.isHero || false,
@@ -560,7 +574,20 @@
       const bob = Math.abs(Math.sin(entry.walkPhase)) * 0.10;
       group.rotation.x = rock;
       group.rotation.z = sway;
-      group.position.y = GROUND_Y + bob;
+
+      // --- Jump ---
+      let jumpY = 0;
+      if (entry.jumpTimer > 0) {
+        entry.jumpTimer += dt;
+        const JUMP_DUR = 0.8;
+        if (entry.jumpTimer < JUMP_DUR) {
+          const t = entry.jumpTimer / JUMP_DUR;
+          jumpY = Math.sin(t * Math.PI) * 4.0; // big arc
+        } else {
+          entry.jumpTimer = 0;
+        }
+      }
+      group.position.y = GROUND_Y + bob + jumpY;
 
       // --- Party hat timer ---
       if (entry.partyHat && entry.partyHatTimer > 0) {
@@ -610,6 +637,64 @@
       scene.add(plane);
     }
     buildGround();
+
+    // --- Winding river ---
+    function buildRiver() {
+      // Define winding path points across the ground
+      const points = [
+        new THREE.Vector3(-18, GROUND_Y + 0.2, 8),
+        new THREE.Vector3(-12, GROUND_Y + 0.2, 5),
+        new THREE.Vector3(-6,  GROUND_Y + 0.2, 7),
+        new THREE.Vector3(-1,  GROUND_Y + 0.2, 3),
+        new THREE.Vector3(4,   GROUND_Y + 0.2, 5),
+        new THREE.Vector3(9,   GROUND_Y + 0.2, 1),
+        new THREE.Vector3(14,  GROUND_Y + 0.2, 3),
+        new THREE.Vector3(20,  GROUND_Y + 0.2, 0),
+      ];
+      const curve = new THREE.CatmullRomCurve3(points);
+
+      // Flat ribbon: custom geometry from curve samples
+      const segments = 80;
+      const riverWidth = 1.2;
+      const positions = [];
+      const uvs = [];
+      const indices = [];
+
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const pt = curve.getPoint(t);
+        const tangent = curve.getTangent(t);
+        // Perpendicular on the xz plane
+        const perp = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+        const w = riverWidth * (0.8 + 0.4 * Math.sin(t * Math.PI * 3)); // slight width variation
+
+        positions.push(pt.x - perp.x * w, pt.y, pt.z - perp.z * w);
+        positions.push(pt.x + perp.x * w, pt.y, pt.z + perp.z * w);
+        uvs.push(0, t);
+        uvs.push(1, t);
+
+        if (i < segments) {
+          const a = i * 2, b = i * 2 + 1, c = (i + 1) * 2, d = (i + 1) * 2 + 1;
+          indices.push(a, c, b);
+          indices.push(b, c, d);
+        }
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+
+      const riverMat = new THREE.MeshBasicMaterial({
+        color: 0x2288cc,
+        side: THREE.DoubleSide,
+      });
+
+      const river = new THREE.Mesh(geo, riverMat);
+      scene.add(river);
+    }
+    buildRiver();
 
     // --- Rocks ---
     function addRocks() {
@@ -838,6 +923,8 @@
         };
       } else if (command === 'spin') {
         entry.spinRemaining = Math.PI * 6; // 3 full rotations
+      } else if (command === 'jump') {
+        entry.jumpTimer = 0.001; // start jump
       } else if (command === 'party_hat') {
         if (entry.partyHat) {
           entry.group.remove(entry.partyHat);
@@ -849,9 +936,9 @@
         // Images are 1408x768, shape is targetHeight=3.0, so shapeW = 3.0 * 1408/768 ≈ 5.5
         // Position is relative to group center, so we need to offset from center
         const HAT_POS = {
-          trex:          { x: -1.8, y: 2.9 },  // head upper-left in image → negative x, high y
-          triceratops:   { x: 0.8,  y: 2.7 },  // frill top-center-right
-          brachiosaurus: { x: 1.5,  y: 2.9 },  // top of head on long neck
+          trex:          { x: -1.8, y: 2.9 },
+          triceratops:   { x: 1.6,  y: 2.5 },
+          brachiosaurus: { x: 2.5,  y: 3.3 },
         };
         const hp = HAT_POS[entry.species] || HAT_POS.trex;
         hat.position.set(hp.x / s, hp.y / s, 0);
