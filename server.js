@@ -105,38 +105,10 @@ async function generateHeroTurtle() {
 // --- Hero Dino Generation ---
 
 async function generateHeroDino() {
-  // This texture gets UV-mapped onto the body shape.
-  // The body shape bounding box maps to the full 200x200.
-  // We paint a green skin/scales texture that fills the whole area.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-    <defs>
-      <radialGradient id="skin" cx="50%" cy="50%" r="60%">
-        <stop offset="0%" stop-color="#8BAA38"/>
-        <stop offset="50%" stop-color="#6B8E23"/>
-        <stop offset="100%" stop-color="#4a6e18"/>
-      </radialGradient>
-    </defs>
-    <!-- Full skin fill -->
-    <rect width="200" height="200" fill="url(#skin)"/>
-    <!-- Scale pattern rows -->
-    ${Array.from({length: 12}, (_, row) =>
-      Array.from({length: 10}, (_, col) => {
-        const ox = (row % 2) * 10;
-        const x = col * 20 + ox;
-        const y = row * 17;
-        return `<ellipse cx="${x}" cy="${y}" rx="8" ry="6" fill="none" stroke="rgba(74,110,24,0.4)" stroke-width="1.2"/>`;
-      }).join('')
-    ).join('')}
-    <!-- Belly lighter stripe -->
-    <rect x="0" y="130" width="200" height="70" fill="rgba(180,200,100,0.2)"/>
-    <!-- Back darker stripe -->
-    <rect x="0" y="0" width="200" height="40" fill="rgba(40,60,10,0.15)"/>
-    <!-- Subtle ridge bumps along back -->
-    <path d="M0 35 Q20 28 40 35 Q60 28 80 35 Q100 28 120 35 Q140 28 160 35 Q180 28 200 35" fill="none" stroke="rgba(50,70,15,0.3)" stroke-width="2.5"/>
-  </svg>`;
-
-  const pngBuffer = await sharp(Buffer.from(svg))
-    .resize(200, 200)
+  // Use the trex.png outline as the hero dino's texture
+  const pngPath = path.join(__dirname, 'public', 'trex.png');
+  const pngBuffer = await sharp(pngPath)
+    .resize(400, 400, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
     .png()
     .toBuffer();
 
@@ -236,6 +208,9 @@ app.get('/api/config', (req, res) => {
 
 // Serve saved drawings as static files
 app.use('/drawings', express.static(DRAWINGS_DIR));
+
+// Serve public directory for static assets (PNG outlines, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Gallery page — shows all uploaded drawings
 app.get('/gallery', (req, res) => {

@@ -160,621 +160,133 @@
     });
 
     // ===================================================================
-    // DINOSAUR SILHOUETTE PATHS
+    // PNG OUTLINE TRACING → THREE.Shape
     // ===================================================================
-    // Each path is defined facing right, normalized roughly to a bounding box.
-    // Actual size is controlled by scale factor per species.
-
-    // Body shapes are everything from hip-level up (no legs).
-    // Legs are separate shapes that get their own meshes for animation.
-
-    function makeTrexBody() {
-      const s = new THREE.Shape();
-      // Massive T-Rex: huge head, powerful body, tiny arms, heavy tail
-      // Start at left hip bottom, trace clockwise
-
-      // Left hip
-      s.moveTo(-0.5, 0);
-
-      // Belly (smooth curve from hip to chest)
-      s.quadraticCurveTo(-0.2, 0.15, 0.3, 0.2);
-      s.quadraticCurveTo(0.7, 0.25, 0.9, 0.45);
-
-      // Lower chest up to tiny arm
-      s.bezierCurveTo(0.95, 0.6, 1.0, 0.75, 1.05, 0.85);
-
-      // Tiny stubby arm (cute little bump)
-      s.quadraticCurveTo(1.15, 0.88, 1.2, 0.95);
-      s.quadraticCurveTo(1.22, 1.02, 1.15, 1.05);
-      s.quadraticCurveTo(1.05, 1.08, 0.95, 1.1);
-
-      // Upper chest flowing into neck
-      s.bezierCurveTo(0.85, 1.25, 0.78, 1.5, 0.75, 1.75);
-
-      // Neck front rising to throat
-      s.bezierCurveTo(0.75, 2.0, 0.8, 2.2, 0.95, 2.35);
-
-      // Throat to jaw hinge
-      s.quadraticCurveTo(1.1, 2.38, 1.3, 2.35);
-
-      // Lower jaw with teeth bumps
-      s.quadraticCurveTo(1.5, 2.3, 1.65, 2.28);
-      s.quadraticCurveTo(1.72, 2.32, 1.8, 2.28);
-      s.quadraticCurveTo(1.88, 2.32, 1.95, 2.28);
-      s.quadraticCurveTo(2.02, 2.32, 2.1, 2.3);
-
-      // Chin rounding up to nose
-      s.bezierCurveTo(2.25, 2.32, 2.4, 2.38, 2.48, 2.5);
-
-      // Nose rounding over snout top
-      s.bezierCurveTo(2.52, 2.62, 2.5, 2.75, 2.42, 2.85);
-
-      // Forehead curving back
-      s.bezierCurveTo(2.3, 2.98, 2.1, 3.08, 1.85, 3.14);
-
-      // Crown of head
-      s.bezierCurveTo(1.6, 3.18, 1.35, 3.16, 1.1, 3.05);
-
-      // Back of skull down into neck
-      s.bezierCurveTo(0.9, 2.9, 0.75, 2.7, 0.65, 2.45);
-
-      // Neck back flowing down
-      s.bezierCurveTo(0.55, 2.1, 0.45, 1.75, 0.35, 1.5);
-
-      // Upper back
-      s.bezierCurveTo(0.2, 1.35, 0.0, 1.2, -0.2, 1.12);
-
-      // Mid back to lower back
-      s.bezierCurveTo(-0.4, 1.05, -0.55, 1.0, -0.7, 0.95);
-
-      // Tail base
-      s.bezierCurveTo(-1.0, 0.9, -1.3, 0.9, -1.6, 0.95);
-
-      // Tail mid (heavy, thick)
-      s.bezierCurveTo(-2.0, 1.0, -2.4, 1.0, -2.65, 0.92);
-
-      // Tail tip (tapering to rounded point)
-      s.bezierCurveTo(-2.78, 0.88, -2.82, 0.82, -2.8, 0.75);
-
-      // Tail underside tapering back
-      s.bezierCurveTo(-2.78, 0.68, -2.6, 0.62, -2.4, 0.6);
-
-      // Tail underside flowing back to hip
-      s.bezierCurveTo(-2.0, 0.52, -1.5, 0.45, -1.1, 0.42);
-      s.bezierCurveTo(-0.85, 0.4, -0.7, 0.35, -0.6, 0.25);
-
-      // Back to left hip
-      s.quadraticCurveTo(-0.55, 0.1, -0.5, 0);
-
-      s.closePath();
-      return s;
-    }
-
-    function makeTrexLeg() {
-      const s = new THREE.Shape();
-      // Thick muscular T-Rex leg with big clawed foot
-
-      // Top left (hip joint)
-      s.moveTo(-0.3, 0);
-
-      // Outer thigh (powerful, bulging muscle)
-      s.bezierCurveTo(-0.38, -0.15, -0.4, -0.35, -0.38, -0.55);
-
-      // Outer thigh to knee
-      s.bezierCurveTo(-0.35, -0.8, -0.3, -1.0, -0.25, -1.15);
-
-      // Knee (slight bulge)
-      s.bezierCurveTo(-0.22, -1.25, -0.2, -1.35, -0.18, -1.5);
-
-      // Shin tapering down
-      s.bezierCurveTo(-0.16, -1.65, -0.17, -1.8, -0.2, -1.95);
-
-      // Ankle joint
-      s.quadraticCurveTo(-0.24, -2.02, -0.3, -2.05);
-
-      // Heel curving to foot bottom
-      s.bezierCurveTo(-0.35, -2.1, -0.38, -2.18, -0.35, -2.22);
-
-      // Foot bottom (big flat foot)
-      s.quadraticCurveTo(-0.2, -2.25, 0.0, -2.25);
-      s.quadraticCurveTo(0.15, -2.25, 0.3, -2.22);
-
-      // Toe bumps (three chunky toes)
-      s.quadraticCurveTo(0.35, -2.2, 0.38, -2.15);
-
-      // Toe top curving back to ankle
-      s.bezierCurveTo(0.35, -2.08, 0.25, -2.02, 0.15, -1.98);
-
-      // Ankle front
-      s.quadraticCurveTo(0.12, -1.9, 0.12, -1.8);
-
-      // Shin front
-      s.bezierCurveTo(0.13, -1.6, 0.15, -1.4, 0.18, -1.2);
-
-      // Knee front
-      s.bezierCurveTo(0.22, -1.0, 0.28, -0.8, 0.33, -0.55);
-
-      // Inner thigh
-      s.bezierCurveTo(0.36, -0.35, 0.35, -0.15, 0.3, 0);
-
-      s.closePath();
-      return s;
-    }
-
-    function makeTriceratopsBody() {
-      const s = new THREE.Shape();
-      // Triceratops: HUGE frill, prominent horns, stocky barrel body, short tail
-      // The frill should dominate the silhouette - it's what makes it recognizable
-
-      // Start at left hip bottom
-      s.moveTo(-0.2, 0);
-
-      // Barrel belly - short and round, not elongated
-      s.bezierCurveTo(0.1, 0.05, 0.5, 0.08, 0.8, 0.1);
-
-      // Chest curving up to throat
-      s.bezierCurveTo(1.0, 0.12, 1.2, 0.18, 1.35, 0.3);
-
-      // Throat up to lower jaw
-      s.bezierCurveTo(1.45, 0.38, 1.55, 0.45, 1.65, 0.5);
-
-      // Lower jaw - beak-like snout
-      s.bezierCurveTo(1.8, 0.55, 1.95, 0.58, 2.05, 0.62);
-
-      // Nose horn - short but visible spike up from snout
-      s.lineTo(2.15, 0.68);
-      s.lineTo(2.2, 0.9);  // horn tip
-      s.lineTo(2.15, 0.78);
-
-      // Snout top curving up to brow
-      s.bezierCurveTo(2.2, 0.88, 2.22, 0.98, 2.2, 1.1);
-
-      // RIGHT brow horn - long and dramatic, pointing up-right
-      s.lineTo(2.25, 1.15);
-      s.lineTo(2.55, 1.7);  // horn tip - high and far!
-      s.lineTo(2.35, 1.35);  // back down
-
-      // Brow ridge between horns
-      s.bezierCurveTo(2.25, 1.3, 2.1, 1.32, 2.0, 1.35);
-
-      // LEFT brow horn - also long, pointing up-left
-      s.lineTo(1.95, 1.4);
-      s.lineTo(1.7, 1.9);  // horn tip
-      s.lineTo(1.8, 1.55);
-
-      // Top of head into frill base
-      s.bezierCurveTo(1.7, 1.5, 1.6, 1.52, 1.5, 1.6);
-
-      // ===== FRILL - big, dramatic, scalloped =====
-      // The frill fans out wide and tall behind the head
-
-      // Frill right edge rising
-      s.bezierCurveTo(1.45, 1.75, 1.42, 1.9, 1.4, 2.05);
-
-      // Scallop 1 (right)
-      s.quadraticCurveTo(1.42, 2.2, 1.35, 2.3);
-      s.quadraticCurveTo(1.28, 2.38, 1.2, 2.32);
-
-      // Scallop 2
-      s.quadraticCurveTo(1.12, 2.42, 1.02, 2.45);
-      s.quadraticCurveTo(0.92, 2.42, 0.85, 2.35);
-
-      // Scallop 3 (center top - highest point)
-      s.quadraticCurveTo(0.78, 2.45, 0.68, 2.48);
-      s.quadraticCurveTo(0.58, 2.45, 0.5, 2.38);
-
-      // Scallop 4
-      s.quadraticCurveTo(0.42, 2.45, 0.32, 2.42);
-      s.quadraticCurveTo(0.22, 2.38, 0.18, 2.28);
-
-      // Scallop 5 (left)
-      s.quadraticCurveTo(0.12, 2.35, 0.05, 2.25);
-      s.quadraticCurveTo(-0.02, 2.15, -0.05, 2.0);
-
-      // Frill left edge descending back to neck
-      s.bezierCurveTo(-0.08, 1.8, -0.08, 1.6, -0.05, 1.45);
-
-      // ===== END FRILL =====
-
-      // Neck back into spine
-      s.bezierCurveTo(-0.02, 1.3, 0.0, 1.15, -0.05, 1.0);
-
-      // Rounded back - stocky
-      s.bezierCurveTo(-0.15, 0.9, -0.3, 0.85, -0.5, 0.82);
-
-      // Lower back to tail base
-      s.bezierCurveTo(-0.7, 0.78, -0.85, 0.72, -1.0, 0.65);
-
-      // Tail - medium, tapering smoothly
-      s.bezierCurveTo(-1.3, 0.55, -1.6, 0.48, -1.85, 0.42);
-      s.bezierCurveTo(-2.0, 0.38, -2.1, 0.32, -2.12, 0.25);
-
-      // Tail tip rounded
-      s.bezierCurveTo(-2.12, 0.2, -2.08, 0.16, -2.0, 0.15);
-
-      // Tail underside
-      s.bezierCurveTo(-1.8, 0.18, -1.5, 0.2, -1.2, 0.2);
-      s.bezierCurveTo(-0.9, 0.18, -0.6, 0.12, -0.35, 0.05);
-
-      // Back to start
-      s.quadraticCurveTo(-0.28, 0.02, -0.2, 0);
-
-      s.closePath();
-      return s;
-    }
-
-    function makeTriceratopsLeg() {
-      const s = new THREE.Shape();
-      // Sturdy columnar Triceratops leg
-
-      // Top left (hip joint)
-      s.moveTo(-0.22, 0);
-
-      // Outer thigh (sturdy, columnar)
-      s.bezierCurveTo(-0.26, -0.15, -0.28, -0.35, -0.26, -0.55);
-
-      // Mid thigh to knee
-      s.bezierCurveTo(-0.24, -0.75, -0.22, -0.95, -0.2, -1.1);
-
-      // Knee to ankle (slight taper)
-      s.bezierCurveTo(-0.19, -1.25, -0.2, -1.35, -0.23, -1.42);
-
-      // Ankle to heel
-      s.quadraticCurveTo(-0.26, -1.48, -0.28, -1.52);
-
-      // Foot bottom (wide, flat)
-      s.bezierCurveTo(-0.28, -1.58, -0.22, -1.6, -0.1, -1.6);
-      s.quadraticCurveTo(0.0, -1.6, 0.12, -1.58);
-      s.bezierCurveTo(0.18, -1.56, 0.2, -1.52, 0.18, -1.48);
-
-      // Foot top to ankle front
-      s.quadraticCurveTo(0.15, -1.42, 0.12, -1.35);
-
-      // Shin front
-      s.bezierCurveTo(0.14, -1.15, 0.17, -0.95, 0.2, -0.75);
-
-      // Inner thigh
-      s.bezierCurveTo(0.23, -0.55, 0.25, -0.35, 0.24, -0.15);
-
-      // Back to top
-      s.quadraticCurveTo(0.23, -0.05, 0.22, 0);
-
-      s.closePath();
-      return s;
-    }
-
-    function makeStegosaurusBody() {
-      const s = new THREE.Shape();
-      // Stegosaurus: HIGH arched back, BIG WIDE diamond plates, spiked tail, small friendly head
-      // The body should be tall and rounded, not flat like a sausage
-      // Plates should be WIDE diamonds, not thin spikes
-
-      // Start at left hip
-      s.moveTo(-0.3, 0);
-
-      // Belly - rounded, not flat. The body has real depth.
-      s.bezierCurveTo(0.0, -0.1, 0.4, -0.15, 0.8, -0.12);
-      s.bezierCurveTo(1.1, -0.08, 1.3, 0.0, 1.5, 0.05);
-
-      // Chest sloping down to neck (head is LOW, below body level)
-      s.bezierCurveTo(1.6, 0.02, 1.7, -0.05, 1.8, -0.15);
-
-      // Neck curving down to small head
-      s.bezierCurveTo(1.9, -0.25, 2.0, -0.32, 2.1, -0.35);
-
-      // Small rounded friendly head
-      s.bezierCurveTo(2.2, -0.38, 2.3, -0.35, 2.35, -0.28);
-      s.bezierCurveTo(2.4, -0.22, 2.4, -0.15, 2.35, -0.08);
-      s.bezierCurveTo(2.3, -0.02, 2.22, 0.02, 2.12, 0.04);
-
-      // Top of head back into neck (neck goes UP to high back)
-      s.bezierCurveTo(2.0, 0.06, 1.9, 0.08, 1.8, 0.12);
-      s.bezierCurveTo(1.7, 0.18, 1.6, 0.28, 1.5, 0.4);
-
-      // Neck rising steeply up to back ridge
-      s.bezierCurveTo(1.4, 0.52, 1.35, 0.6, 1.3, 0.65);
-
-      // ===== PLATES - wide diamond/kite shapes along the arched back =====
-      // Each plate: go wide left, up to tip, wide right, back to ridge
-      // The back arches HIGH - ridge goes from 0.65 up to ~0.85 at center, back down
-
-      // Plate 1 (front, smallest)
-      s.lineTo(1.22, 0.65);
-      s.bezierCurveTo(1.15, 0.7, 1.1, 0.85, 1.15, 1.05);  // left edge up
-      s.lineTo(1.2, 1.2);                                     // tip
-      s.bezierCurveTo(1.25, 0.85, 1.3, 0.72, 1.28, 0.68);   // right edge down
-
-      // Ridge between plates (arching up)
-      s.bezierCurveTo(1.15, 0.7, 1.05, 0.72, 0.98, 0.73);
-
-      // Plate 2 (medium)
-      s.bezierCurveTo(0.9, 0.78, 0.82, 0.95, 0.85, 1.18);   // left edge
-      s.lineTo(0.9, 1.42);                                     // tip
-      s.bezierCurveTo(0.95, 1.0, 1.02, 0.82, 1.0, 0.76);    // right edge
-
-      // Ridge (highest point of arch)
-      s.bezierCurveTo(0.88, 0.78, 0.75, 0.8, 0.65, 0.8);
-
-      // Plate 3 (center, BIGGEST)
-      s.bezierCurveTo(0.55, 0.85, 0.45, 1.05, 0.5, 1.35);   // left edge
-      s.lineTo(0.55, 1.65);                                    // tip - tallest!
-      s.bezierCurveTo(0.62, 1.1, 0.7, 0.9, 0.68, 0.82);     // right edge
-
-      // Ridge (still high)
-      s.bezierCurveTo(0.55, 0.82, 0.42, 0.78, 0.32, 0.75);
-
-      // Plate 4 (medium)
-      s.bezierCurveTo(0.22, 0.8, 0.14, 0.95, 0.18, 1.15);   // left edge
-      s.lineTo(0.22, 1.35);                                    // tip
-      s.bezierCurveTo(0.28, 0.98, 0.35, 0.82, 0.35, 0.76);  // right edge
-
-      // Ridge (descending toward tail)
-      s.bezierCurveTo(0.22, 0.74, 0.1, 0.7, 0.0, 0.66);
-
-      // Plate 5 (rear, smallest)
-      s.bezierCurveTo(-0.08, 0.7, -0.15, 0.82, -0.12, 0.98);  // left edge
-      s.lineTo(-0.08, 1.12);                                      // tip
-      s.bezierCurveTo(-0.02, 0.85, 0.05, 0.72, 0.02, 0.66);   // right edge
-
-      // ===== END PLATES =====
-
-      // Back ridge flowing down into tail
-      s.bezierCurveTo(-0.1, 0.62, -0.3, 0.58, -0.5, 0.55);
-
-      // Tail base (thick, rising slightly for thagomizer)
-      s.bezierCurveTo(-0.8, 0.52, -1.1, 0.52, -1.4, 0.55);
-      s.bezierCurveTo(-1.6, 0.58, -1.75, 0.6, -1.85, 0.6);
-
-      // ===== THAGOMIZER - 4 big spikes =====
-      // Spike 1 (upper, angled back-up)
-      s.lineTo(-1.9, 0.62);
-      s.lineTo(-2.15, 1.0);   // spike tip
-      s.lineTo(-1.98, 0.65);
-
-      // Spike 2 (upper-forward, angled up-forward)
-      s.lineTo(-2.05, 0.63);
-      s.lineTo(-2.4, 0.95);   // spike tip
-      s.lineTo(-2.15, 0.58);
-
-      // Tail end
-      s.bezierCurveTo(-2.25, 0.5, -2.3, 0.42, -2.3, 0.35);
-
-      // Spike 3 (lower-forward)
-      s.lineTo(-2.4, 0.1);    // spike tip
-      s.lineTo(-2.2, 0.3);
-
-      // Spike 4 (lower-back)
-      s.lineTo(-2.15, 0.05);  // spike tip
-      s.lineTo(-2.0, 0.28);
-
-      // ===== END THAGOMIZER =====
-
-      // Tail underside flowing back to body
-      s.bezierCurveTo(-1.8, 0.25, -1.5, 0.2, -1.2, 0.18);
-      s.bezierCurveTo(-0.9, 0.15, -0.6, 0.08, -0.4, 0.03);
-
-      // Back to left hip
-      s.quadraticCurveTo(-0.35, 0.01, -0.3, 0);
-
-      s.closePath();
-      return s;
-    }
-
-    function makeStegosaurusLeg() {
-      const s = new THREE.Shape();
-      // Short stumpy Stegosaurus leg
-
-      // Top left (hip joint)
-      s.moveTo(-0.2, 0);
-
-      // Outer thigh (chunky)
-      s.bezierCurveTo(-0.24, -0.12, -0.26, -0.3, -0.24, -0.5);
-
-      // Knee area
-      s.bezierCurveTo(-0.22, -0.7, -0.2, -0.85, -0.19, -0.98);
-
-      // Ankle
-      s.quadraticCurveTo(-0.2, -1.08, -0.24, -1.15);
-
-      // Heel to foot bottom
-      s.bezierCurveTo(-0.27, -1.22, -0.28, -1.3, -0.25, -1.38);
-
-      // Foot bottom (wide, flat pad)
-      s.quadraticCurveTo(-0.15, -1.4, 0.0, -1.4);
-      s.quadraticCurveTo(0.1, -1.4, 0.18, -1.38);
-
-      // Toe top
-      s.bezierCurveTo(0.2, -1.34, 0.19, -1.28, 0.16, -1.22);
-
-      // Ankle front
-      s.quadraticCurveTo(0.13, -1.12, 0.12, -1.0);
-
-      // Shin front
-      s.bezierCurveTo(0.14, -0.85, 0.17, -0.65, 0.2, -0.5);
-
-      // Inner thigh
-      s.bezierCurveTo(0.22, -0.35, 0.23, -0.15, 0.2, 0);
-
-      s.closePath();
-      return s;
-    }
-
-    function makeBrachiosaurusBody() {
-      const s = new THREE.Shape();
-      // Brachiosaurus: long graceful neck, small head, compact body, long tail
-
-      // Left hip
-      s.moveTo(-0.3, 0);
-
-      // Belly (rounded, compact body)
-      s.bezierCurveTo(-0.1, 0.05, 0.2, 0.08, 0.5, 0.1);
-      s.bezierCurveTo(0.7, 0.12, 0.85, 0.15, 1.0, 0.2);
-
-      // Chest (front legs taller, so chest is higher)
-      s.bezierCurveTo(1.1, 0.3, 1.15, 0.5, 1.15, 0.7);
-
-      // Lower neck front
-      s.bezierCurveTo(1.12, 0.9, 1.05, 1.1, 1.0, 1.3);
-
-      // Neck front - long graceful S-curve upward
-      s.bezierCurveTo(0.92, 1.7, 0.88, 2.1, 0.88, 2.5);
-
-      // Upper neck front
-      s.bezierCurveTo(0.88, 2.9, 0.92, 3.2, 1.0, 3.5);
-
-      // Neck approaching head
-      s.bezierCurveTo(1.05, 3.7, 1.12, 3.85, 1.2, 3.95);
-
-      // Throat / under jaw
-      s.bezierCurveTo(1.3, 4.02, 1.4, 4.05, 1.5, 4.08);
-
-      // Lower jaw rounding to snout
-      s.bezierCurveTo(1.6, 4.1, 1.68, 4.12, 1.72, 4.18);
-
-      // Snout tip (small rounded head)
-      s.bezierCurveTo(1.78, 4.25, 1.8, 4.32, 1.78, 4.38);
-
-      // Top of snout
-      s.bezierCurveTo(1.75, 4.42, 1.68, 4.45, 1.58, 4.48);
-
-      // Head crest (gentle dome)
-      s.bezierCurveTo(1.45, 4.52, 1.3, 4.52, 1.18, 4.48);
-
-      // Back of head
-      s.bezierCurveTo(1.08, 4.44, 1.0, 4.38, 0.95, 4.28);
-
-      // Skull base into neck back
-      s.bezierCurveTo(0.88, 4.15, 0.82, 4.0, 0.78, 3.8);
-
-      // Neck back - graceful curve down
-      s.bezierCurveTo(0.72, 3.4, 0.68, 3.0, 0.65, 2.6);
-
-      // Mid neck back
-      s.bezierCurveTo(0.62, 2.2, 0.6, 1.8, 0.6, 1.5);
-
-      // Lower neck back into shoulder hump
-      s.bezierCurveTo(0.58, 1.2, 0.52, 1.0, 0.45, 0.85);
-
-      // Shoulder area (high point of back)
-      s.bezierCurveTo(0.35, 0.75, 0.2, 0.7, 0.05, 0.68);
-
-      // Back curving down (front higher than back)
-      s.bezierCurveTo(-0.15, 0.65, -0.3, 0.6, -0.45, 0.55);
-
-      // Lower back into tail base
-      s.bezierCurveTo(-0.65, 0.5, -0.85, 0.48, -1.0, 0.48);
-
-      // Tail (long, gracefully tapering)
-      s.bezierCurveTo(-1.3, 0.48, -1.55, 0.45, -1.75, 0.38);
-
-      // Tail tip tapering to smooth point
-      s.bezierCurveTo(-1.88, 0.32, -1.95, 0.25, -2.0, 0.18);
-
-      // Tail end (rounded tip)
-      s.bezierCurveTo(-2.02, 0.12, -2.0, 0.08, -1.95, 0.06);
-
-      // Tail underside
-      s.bezierCurveTo(-1.85, 0.04, -1.7, 0.08, -1.5, 0.12);
-
-      // Tail underside back to body
-      s.bezierCurveTo(-1.2, 0.18, -0.9, 0.2, -0.65, 0.18);
-      s.bezierCurveTo(-0.5, 0.15, -0.4, 0.08, -0.3, 0);
-
-      s.closePath();
-      return s;
-    }
-
-    function makeBrachiosaurusLeg() {
-      const s = new THREE.Shape();
-      // Tall columnar Brachiosaurus leg
-
-      // Top left (hip joint)
-      s.moveTo(-0.18, 0);
-
-      // Outer thigh (tall, slightly tapering column)
-      s.bezierCurveTo(-0.22, -0.2, -0.24, -0.45, -0.22, -0.7);
-
-      // Mid leg
-      s.bezierCurveTo(-0.2, -0.95, -0.18, -1.15, -0.17, -1.35);
-
-      // Lower leg to ankle
-      s.bezierCurveTo(-0.16, -1.5, -0.17, -1.62, -0.2, -1.72);
-
-      // Ankle
-      s.quadraticCurveTo(-0.22, -1.78, -0.24, -1.82);
-
-      // Foot bottom (broad, flat)
-      s.bezierCurveTo(-0.24, -1.88, -0.18, -1.9, -0.08, -1.9);
-      s.quadraticCurveTo(0.0, -1.9, 0.08, -1.9);
-      s.bezierCurveTo(0.14, -1.88, 0.16, -1.84, 0.14, -1.78);
-
-      // Toe top to ankle front
-      s.quadraticCurveTo(0.12, -1.72, 0.1, -1.62);
-
-      // Shin front
-      s.bezierCurveTo(0.11, -1.45, 0.13, -1.25, 0.15, -1.05);
-
-      // Mid leg front
-      s.bezierCurveTo(0.17, -0.8, 0.19, -0.55, 0.2, -0.35);
-
-      // Inner thigh
-      s.bezierCurveTo(0.2, -0.2, 0.19, -0.08, 0.18, 0);
-
-      s.closePath();
-      return s;
-    }
-
-    // Per-species config: body shape, leg shape, hip positions, leg length for ground placement
-    const DINO_CONFIGS = {
-      trex: {
-        body: makeTrexBody(),
-        leg: makeTrexLeg(),
-        hipLeft: { x: -0.3, y: 0 },
-        hipRight: { x: 0.6, y: 0 },
-        legLength: 2.25,
-      },
-      triceratops: {
-        body: makeTriceratopsBody(),
-        leg: makeTriceratopsLeg(),
-        hipLeft: { x: -0.1, y: 0 },
-        hipRight: { x: 0.8, y: 0 },
-        legLength: 1.6,
-      },
-      stegosaurus: {
-        body: makeStegosaurusBody(),
-        leg: makeStegosaurusLeg(),
-        hipLeft: { x: -0.1, y: 0 },
-        hipRight: { x: 1.0, y: 0 },
-        legLength: 1.4,
-      },
-      brachiosaurus: {
-        body: makeBrachiosaurusBody(),
-        leg: makeBrachiosaurusLeg(),
-        hipLeft: { x: -0.1, y: 0 },
-        hipRight: { x: 0.8, y: 0 },
-        legLength: 1.9,
-      },
+    // Load a PNG, trace its alpha outline, and create a THREE.Shape for extrusion.
+
+    // Species PNG files
+    const SPECIES_PNGS = {
+      trex: '/trex.png',
+      triceratops: '/tric.png',
+      brachiosaurus: '/brach.png',
     };
 
-    // Scale factors per species (how tall in scene units)
     const DINO_SCALES = {
       trex: 1.0,
       triceratops: 0.95,
-      stegosaurus: 0.85,
       brachiosaurus: 1.1,
     };
 
     const DINO_SPEEDS = {
       trex: 1.2,
       triceratops: 0.9,
-      stegosaurus: 0.7,
       brachiosaurus: 0.6,
     };
+
+    // --- Shape cache (traced outlines) ---
+    const shapeCache = new Map();
+
+    function loadImageToCanvas(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.width; c.height = img.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          resolve({ ctx, width: img.width, height: img.height });
+        };
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    // Moore-neighbor contour tracing on alpha channel
+    function traceAlphaContour(ctx, w, h, threshold = 64) {
+      const data = ctx.getImageData(0, 0, w, h).data;
+      const opaque = (x, y) => x >= 0 && x < w && y >= 0 && y < h && data[(y * w + x) * 4 + 3] > threshold;
+
+      // Find first opaque pixel
+      let sx = -1, sy = -1;
+      outer: for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++)
+          if (opaque(x, y)) { sx = x; sy = y; break outer; }
+      if (sx < 0) return [];
+
+      const dirs = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
+      const contour = [];
+      let cx = sx, cy = sy, dir = 7;
+
+      for (let step = 0; step < w * h * 2; step++) {
+        contour.push([cx, cy]);
+        let searchDir = (dir + 5) % 8;
+        let found = false;
+        for (let i = 0; i < 8; i++) {
+          const d = (searchDir + i) % 8;
+          const nx = cx + dirs[d][0], ny = cy + dirs[d][1];
+          if (opaque(nx, ny)) {
+            dir = d; cx = nx; cy = ny; found = true; break;
+          }
+        }
+        if (!found) break;
+        if (cx === sx && cy === sy && contour.length > 2) break;
+      }
+      return contour;
+    }
+
+    // Ramer-Douglas-Peucker simplification
+    function simplifyContour(pts, eps) {
+      if (pts.length <= 2) return pts;
+      const a = pts[0], b = pts[pts.length - 1];
+      let maxD = 0, maxI = 0;
+      for (let i = 1; i < pts.length - 1; i++) {
+        const d = ptLineDist(pts[i], a, b);
+        if (d > maxD) { maxD = d; maxI = i; }
+      }
+      if (maxD > eps) {
+        const L = simplifyContour(pts.slice(0, maxI + 1), eps);
+        const R = simplifyContour(pts.slice(maxI), eps);
+        return L.slice(0, -1).concat(R);
+      }
+      return [a, b];
+    }
+
+    function ptLineDist(p, a, b) {
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const len2 = dx * dx + dy * dy;
+      if (len2 === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+      const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2));
+      return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+    }
+
+    // Convert pixel contour → THREE.Shape (Y-flipped, scaled to targetHeight)
+    function contourToShape(contour, imgH, targetHeight) {
+      const scale = targetHeight / imgH;
+      const s = new THREE.Shape();
+      s.moveTo(contour[0][0] * scale, (imgH - contour[0][1]) * scale);
+      for (let i = 1; i < contour.length; i++) {
+        s.lineTo(contour[i][0] * scale, (imgH - contour[i][1]) * scale);
+      }
+      s.closePath();
+      return s;
+    }
+
+    // Get or create traced shape for a species
+    async function getSpeciesShape(species) {
+      if (shapeCache.has(species)) return shapeCache.get(species);
+      const pngUrl = SPECIES_PNGS[species] || SPECIES_PNGS.trex;
+      const { ctx, width, height } = await loadImageToCanvas(pngUrl);
+      let contour = traceAlphaContour(ctx, width, height);
+      contour = simplifyContour(contour, 1.5);
+      const shape = contourToShape(contour, height, 5.0);
+      const result = { shape };
+      shapeCache.set(species, result);
+      return result;
+    }
 
     // ===================================================================
     // CUSTOM UV GENERATOR for ExtrudeGeometry
     // ===================================================================
-    // Maps shape coords to 0-1 UV range based on bounding box
     function makeUVGenerator(shape) {
       const pts = shape.getPoints();
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -786,7 +298,6 @@
       }
       const rangeX = maxX - minX || 1;
       const rangeY = maxY - minY || 1;
-
       return {
         generateTopUV(geometry, vertices, indexA, indexB, indexC) {
           const ax = vertices[indexA * 3], ay = vertices[indexA * 3 + 1];
@@ -798,12 +309,10 @@
             new THREE.Vector2((cx - minX) / rangeX, (cy - minY) / rangeY),
           ];
         },
-        generateSideWallUV(geometry, vertices, indexA, indexB, indexC, indexD) {
+        generateSideWallUV() {
           return [
-            new THREE.Vector2(0, 0),
-            new THREE.Vector2(1, 0),
-            new THREE.Vector2(1, 1),
-            new THREE.Vector2(0, 1),
+            new THREE.Vector2(0, 0), new THREE.Vector2(1, 0),
+            new THREE.Vector2(1, 1), new THREE.Vector2(0, 1),
           ];
         }
       };
@@ -818,26 +327,20 @@
         img.onload = () => {
           const w = img.width, h = img.height;
           const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
+          canvas.width = w; canvas.height = h;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
-
-          // Contrast boost (same S-curve as turtles)
           const imgData = ctx.getImageData(0, 0, w, h);
           const d = imgData.data;
           for (let i = 0; i < d.length; i += 4) {
             if (d[i + 3] < 10) continue;
             for (let c = 0; c < 3; c++) {
               let v = d[i + c] / 255;
-              v = v < 0.5
-                ? 0.5 * Math.pow(2 * v, 2.8)
-                : 1 - 0.5 * Math.pow(2 * (1 - v), 2.8);
+              v = v < 0.5 ? 0.5 * Math.pow(2 * v, 2.8) : 1 - 0.5 * Math.pow(2 * (1 - v), 2.8);
               d[i + c] = Math.round(v * 255);
             }
           }
           ctx.putImageData(imgData, 0, 0);
-
           const tex = new THREE.CanvasTexture(canvas);
           tex.colorSpace = THREE.SRGBColorSpace;
           resolve(tex);
@@ -847,126 +350,44 @@
     }
 
     // ===================================================================
-    // CREATE DINO 3D (wooden cutout)
+    // CREATE DINO 3D (PNG-traced wooden cutout)
     // ===================================================================
     async function createDino3D(serverData) {
       const species = serverData.species || 'trex';
-      const config = DINO_CONFIGS[species] || DINO_CONFIGS.trex;
       const scale = DINO_SCALES[species] || 1.0;
 
-      // Build materials
+      // Get traced shape from species PNG
+      const { shape } = await getSpeciesShape(species);
+
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth: 0.3,
+        bevelEnabled: false,
+        UVGenerator: makeUVGenerator(shape),
+      });
+
+      // Build material
       let frontBackMat;
       if (serverData.imageData) {
         const tex = await loadDinoTexture(serverData.imageData);
         frontBackMat = new THREE.MeshStandardMaterial({
-          map: tex,
-          roughness: 0.6,
-          metalness: 0,
-          side: THREE.DoubleSide,
+          map: tex, roughness: 0.6, metalness: 0, side: THREE.DoubleSide,
         });
       } else {
-        frontBackMat = new THREE.MeshStandardMaterial({
-          color: 0x8BAA38,
-          roughness: 0.6,
-        });
+        frontBackMat = new THREE.MeshStandardMaterial({ color: 0x8BAA38, roughness: 0.6 });
       }
 
-      // Leg material (same color but no texture - keeps it simple)
-      const legMat = new THREE.MeshStandardMaterial({
-        color: frontBackMat.color || new THREE.Color(0x8BAA38),
-        roughness: 0.6,
-        metalness: 0,
-      });
-      if (serverData.imageData) {
-        // Tint legs to match body
-        legMat.color.set(0x6a8a28);
-      }
+      const mesh = new THREE.Mesh(geometry, [frontBackMat, woodMat]);
 
-      // --- Body mesh ---
-      const bodyShape = config.body;
-      const bodyGeo = new THREE.ExtrudeGeometry(bodyShape, {
-        depth: 0.35,
-        bevelEnabled: false,
-        UVGenerator: makeUVGenerator(bodyShape),
-      });
-      const bodyMesh = new THREE.Mesh(bodyGeo, [frontBackMat, woodMat]);
-      bodyGeo.computeBoundingBox();
-      const bbb = bodyGeo.boundingBox;
-      const bcx = (bbb.min.x + bbb.max.x) / 2;
-      const bcz = (bbb.min.z + bbb.max.z) / 2;
-      bodyMesh.geometry.translate(-bcx, 0, -bcz);
-
-      // --- Leg meshes (2 pairs: front-left/back-right and front-right/back-left for walk cycle) ---
-      const legShape = config.leg;
-      const legGeo = new THREE.ExtrudeGeometry(legShape, {
-        depth: 0.25,
-        bevelEnabled: false,
-      });
-
-      // Create leg pivot groups (pivot at hip)
-      function makeLegPivot(hipX) {
-        const pivot = new THREE.Group();
-        const legMesh = new THREE.Mesh(legGeo, [legMat, woodMat]);
-        // Position leg so pivot point is at top of leg
-        pivot.add(legMesh);
-        pivot.position.set(hipX - bcx, 0, 0);
-        return pivot;
-      }
-
-      const leftLegPivot = makeLegPivot(config.hipLeft.x);
-      const rightLegPivot = makeLegPivot(config.hipRight.x);
-
-      // --- 3D eyes (on both sides of head) ---
-      const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
-      const pupilMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.2 });
-      const eyeHighlightMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
-
-      // Eye positions relative to body shape (species-specific)
-      const eyeConfigs = {
-        trex: { x: 1.5, y: 2.85, size: 0.18 },
-        triceratops: { x: 1.8, y: 1.05, size: 0.12 },
-        stegosaurus: { x: 2.1, y: 0.15, size: 0.10 },
-        brachiosaurus: { x: 1.3, y: 4.2, size: 0.14 },
-      };
-      const eyeCfg = eyeConfigs[species] || eyeConfigs.trex;
-
-      // Front-side eye
-      const eyeWhite1 = new THREE.Mesh(new THREE.SphereGeometry(eyeCfg.size, 8, 8), eyeWhiteMat);
-      eyeWhite1.position.set(eyeCfg.x - bcx, eyeCfg.y, 0.2);
-      bodyMesh.add(eyeWhite1);
-      const pupil1 = new THREE.Mesh(new THREE.SphereGeometry(eyeCfg.size * 0.55, 6, 6), pupilMat);
-      pupil1.position.set(0, 0, eyeCfg.size * 0.6);
-      eyeWhite1.add(pupil1);
-      const highlight1 = new THREE.Mesh(new THREE.SphereGeometry(eyeCfg.size * 0.25, 4, 4), eyeHighlightMat);
-      highlight1.position.set(eyeCfg.size * 0.2, eyeCfg.size * 0.2, eyeCfg.size * 0.85);
-      eyeWhite1.add(highlight1);
-
-      // Back-side eye
-      const eyeWhite2 = new THREE.Mesh(new THREE.SphereGeometry(eyeCfg.size, 8, 8), eyeWhiteMat);
-      eyeWhite2.position.set(eyeCfg.x - bcx, eyeCfg.y, -0.15);
-      bodyMesh.add(eyeWhite2);
-      const pupil2 = new THREE.Mesh(new THREE.SphereGeometry(eyeCfg.size * 0.55, 6, 6), pupilMat);
-      pupil2.position.set(0, 0, -eyeCfg.size * 0.6);
-      eyeWhite2.add(pupil2);
-      const highlight2 = new THREE.Mesh(new THREE.SphereGeometry(eyeCfg.size * 0.25, 4, 4), eyeHighlightMat);
-      highlight2.position.set(eyeCfg.size * 0.2, eyeCfg.size * 0.2, -eyeCfg.size * 0.85);
-      eyeWhite2.add(highlight2);
-
-      // --- Assemble group ---
-      // Body sits above legs; legs hang from hip level
-      const bodyGroup = new THREE.Group();
-      bodyGroup.add(bodyMesh);
-      bodyGroup.position.y = config.legLength;
+      // Center on bounding box, feet at origin
+      geometry.computeBoundingBox();
+      const bb = geometry.boundingBox;
+      const cx = (bb.min.x + bb.max.x) / 2;
+      const cy = bb.min.y;
+      const cz = (bb.min.z + bb.max.z) / 2;
+      mesh.geometry.translate(-cx, -cy, -cz);
 
       const group = new THREE.Group();
-      group.add(bodyGroup);
-
-      // Position leg pivots at hip height
-      leftLegPivot.position.y = config.legLength;
-      rightLegPivot.position.y = config.legLength;
-      group.add(leftLegPivot);
-      group.add(rightLegPivot);
-
+      group.add(mesh);
       group.scale.setScalar(scale);
 
       // Shadow
@@ -981,9 +402,7 @@
 
       scene.add(group);
 
-      // Compute total height for labels
-      const totalHeight = (bbb.max.y + config.legLength) * scale;
-
+      const dinoHeight = (bb.max.y - bb.min.y) * scale;
       group.position.set(
         ARENA.xMin + Math.random() * (ARENA.xMax - ARENA.xMin),
         GROUND_Y,
@@ -993,28 +412,19 @@
       const entry = {
         id: serverData.id,
         name: serverData.name,
-        species,
-        group,
-        mesh: bodyMesh,
-        shadow,
+        species, group, mesh, shadow,
         material: frontBackMat,
-        height: totalHeight,
+        height: dinoHeight,
         heading: Math.random() * Math.PI * 2,
         targetHeading: Math.random() * Math.PI * 2,
         smoothHeading: Math.random() * Math.PI * 2,
         speed: (serverData.speed || 60) / 300 * (DINO_SPEEDS[species] || 1),
         wanderTimer: Math.random() * 5,
         walkPhase: Math.random() * Math.PI * 2,
-        leftLeg: leftLegPivot,
-        rightLeg: rightLegPivot,
-        bodyGroup,
-        boostTimer: 0,
-        boostTarget: null,
+        boostTimer: 0, boostTarget: null,
         spinRemaining: 0,
-        partyHat: null,
-        partyHatTimer: 0,
-        label: null,
-        labelCreatedAt: performance.now(),
+        partyHat: null, partyHatTimer: 0,
+        label: null, labelCreatedAt: performance.now(),
         isHero: serverData.isHero || false,
       };
 
@@ -1135,16 +545,14 @@
       // --- Apply rotation ---
       group.rotation.y = entry.heading;
 
-      // --- Walking animation: swing legs back and forth ---
-      const walkRate = 3 + moveSpeed * 8;
+      // --- Walking animation (stompy wooden toy gait) ---
+      const walkRate = 4 + moveSpeed * 10;
       entry.walkPhase += dt * walkRate;
-
-      const legSwing = Math.sin(entry.walkPhase) * 0.5;  // leg swing angle (radians)
-      if (entry.leftLeg) entry.leftLeg.rotation.z = legSwing;
-      if (entry.rightLeg) entry.rightLeg.rotation.z = -legSwing;
-
-      // Gentle body bob (subtle, not the main motion)
-      const bob = Math.abs(Math.sin(entry.walkPhase * 2)) * 0.06;
+      const rock = Math.sin(entry.walkPhase) * 0.08;
+      const sway = Math.sin(entry.walkPhase * 0.5) * 0.05;
+      const bob = (1 - Math.abs(Math.sin(entry.walkPhase))) * 0.12;
+      group.rotation.x = rock;
+      group.rotation.z = sway;
       group.position.y = GROUND_Y + bob;
 
       // --- Party hat timer ---
@@ -1512,47 +920,6 @@
       // Volcano lava glow pulse
       volcano.glow.material.emissiveIntensity = 2.5 + Math.sin(time * 1.5) * 0.8;
       volcano.lavaLight.intensity = 1.5 + Math.sin(time * 1.8) * 0.5;
-    }
-
-    // ===================================================================
-    // HERO DINO TEXTURE (procedural)
-    // ===================================================================
-    function createHeroTexture() {
-      const size = 512;
-      const canvas = document.createElement('canvas');
-      canvas.width = size; canvas.height = size;
-      const ctx = canvas.getContext('2d');
-
-      // Earthy gradient background
-      const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-      grad.addColorStop(0, '#8BAA38');
-      grad.addColorStop(0.5, '#6B8E23');
-      grad.addColorStop(1, '#5a7a1e');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, size, size);
-
-      // Scale-like pattern
-      for (let y = 0; y < size; y += 30) {
-        for (let x = 0; x < size; x += 26) {
-          const offsetX = (Math.floor(y / 30) % 2) * 13;
-          ctx.beginPath();
-          ctx.arc(x + offsetX, y, 12, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(90,122,30,0.4)`;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
-      }
-
-      // Golden shimmer
-      const shimmer = ctx.createRadialGradient(size*0.4, size*0.3, 0, size/2, size/2, size/2);
-      shimmer.addColorStop(0, 'rgba(201,168,76,0.2)');
-      shimmer.addColorStop(1, 'rgba(201,168,76,0)');
-      ctx.fillStyle = shimmer;
-      ctx.fillRect(0, 0, size, size);
-
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      return tex;
     }
 
     // ===================================================================
