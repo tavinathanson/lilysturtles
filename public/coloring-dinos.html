@@ -87,11 +87,13 @@
     flex: 1;
     min-height: 0;
     position: relative;
-    /* Light gray dot grid — shows through transparent PNG areas.
-       Prints as subtle dots outside the dino, stays above the 200/255
-       detection threshold so image processing ignores it. */
-    background-image: radial-gradient(circle, #ccc 0.6px, transparent 0.6px);
-    background-size: 7px 7px;
+    /* Dark dot grid — prints visibly outside the dino silhouette.
+       Dots fall below the 200/255 threshold so the algorithm can
+       distinguish dotted background from the white dino interior. */
+    background-image: radial-gradient(circle, #888 2.5px, transparent 2.5px);
+    background-size: 14px 14px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .dino-svg {
     width: 100%;
@@ -220,12 +222,8 @@
     svg.setAttribute('width', count * 30 + 20);
     svg.setAttribute('height', 40);
     svg.setAttribute('viewBox', '0 0 ' + (count * 30 + 20) + ' 40');
-    var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('x', 2); rect.setAttribute('y', 2);
-    rect.setAttribute('width', count * 30 + 16); rect.setAttribute('height', 36);
-    rect.setAttribute('rx', 6); rect.setAttribute('fill', 'none');
-    rect.setAttribute('stroke', '#000'); rect.setAttribute('stroke-width', 2);
-    svg.appendChild(rect);
+    // No enclosing box — a border would merge with the dots into one contour
+    // and break species detection (which counts separate dark contours).
     for (var i = 0; i < count; i++) {
       var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       circle.setAttribute('cx', 18 + i * 30); circle.setAttribute('cy', 20);
