@@ -14,14 +14,8 @@ if (!fs.existsSync(DRAWINGS_DIR)) fs.mkdirSync(DRAWINGS_DIR);
 
 const app = express();
 
-// Load config from environment variables or config.json fallback
-let config = {};
-const CONFIG_PATH = path.join(__dirname, 'config.json');
-if (fs.existsSync(CONFIG_PATH)) {
-  config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-}
-const EVENT_CODE = process.env.EVENT_CODE || config.eventCode || '1234';
-const PORT = process.env.PORT || config.port || 3000;
+const EVENT_CODE = process.env.EVENT_CODE || '1234';
+const PORT = process.env.PORT || 3000;
 const MAX_TURTLES = 30;
 const MAX_DINOS = 30;
 const rateLimitMap = new Map();
@@ -95,7 +89,7 @@ async function generateHeroTurtle() {
   const base64 = pngBuffer.toString('base64');
   heroTurtle = {
     id: 'hero',
-    name: (config.turtles && config.turtles.heroName) || "Lily's Turtle",
+    name: "Lily's Turtle",
     imageData: `data:image/png;base64,${base64}`,
     depth: 0.5,
     speed: 30,
@@ -167,7 +161,7 @@ async function generateHeroDino() {
 
   heroDino = {
     id: 'hero-dino',
-    name: (config.dinos && config.dinos.heroName) || "Ari's Dinosaur",
+    name: "Ari's Dinosaur",
     imageData: result.imageData,
     species: result.species || 'trex',
     depth: 0.5,
@@ -305,7 +299,11 @@ app.use(express.json());
 // Config endpoint — returns title/heroName for a given mode
 app.get('/api/config', (req, res) => {
   const mode = req.query.mode || 'turtles';
-  const modeConfig = config[mode] || config.turtles || {};
+  const configs = {
+    turtles: { title: "Lily's Turtles", heroName: "Lily's Turtle" },
+    dinos:   { title: "Ari's Dinosaurs", heroName: "Ari's Dinosaur" },
+  };
+  const modeConfig = configs[mode] || configs.turtles;
   res.json({ title: modeConfig.title, heroName: modeConfig.heroName });
 });
 
