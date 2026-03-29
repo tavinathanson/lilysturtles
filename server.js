@@ -288,6 +288,10 @@ app.get('/coloring-dinos', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'coloring-dinos.html'));
 });
 
+app.get('/remote', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'remote-dinos.html'));
+});
+
 app.get('/reset', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'reset.html'));
 });

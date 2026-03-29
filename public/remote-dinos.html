@@ -114,6 +114,7 @@
     .action-btn.hat     { background: #d4609a; }
     .action-btn.spin    { background: #e08830; }
     .action-btn.jump    { background: #4a9a5a; }
+    .action-btn.delete  { background: #c03030; }
     .nav-link {
       display: block;
       text-align: center;
@@ -154,6 +155,9 @@
       </button>
       <button class="action-btn jump" data-action="jump" data-cooldown="4">
         Jump!
+      </button>
+      <button class="action-btn delete" id="deleteBtn">
+        Delete This Dino
       </button>
     </div>
 
@@ -307,6 +311,43 @@
         }, cooldown);
       });
     }
+
+    // Delete button
+    const deleteBtn = document.getElementById('deleteBtn');
+    deleteBtn.addEventListener('click', async () => {
+      const dinoId = dinoSelect.value;
+      if (!dinoId) return;
+      const dinoName = dinoSelect.options[dinoSelect.selectedIndex].textContent;
+      if (!confirm(`Delete "${dinoName}"? This cannot be undone.`)) return;
+
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting...';
+      msg.className = 'message'; msg.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/delete-dinos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventCode, ids: [dinoId] }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msg.className = 'message'; msg.style.cssText = 'display:block;background:#e0ffe0;color:#060';
+          msg.textContent = `Deleted "${dinoName}".`;
+          await refreshDinoList();
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.error || 'Delete failed.';
+          msg.style.display = 'block';
+        }
+      } catch {
+        msg.className = 'message error';
+        msg.textContent = 'Connection error. Try again!';
+        msg.style.display = 'block';
+      }
+      deleteBtn.disabled = false;
+      deleteBtn.textContent = 'Delete This Dino';
+    });
   </script>
 </body>
 </html>
