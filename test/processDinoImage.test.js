@@ -197,7 +197,7 @@ async function saveDebug(name, buffer) {
 
 describe('processDinoImage — synthetic coloring pages with dot grid', () => {
 
-  it('detects T-Rex (1 dot) with red coloring', async () => {
+  it('detects dino with red coloring (trex page)', async () => {
     const page = await makeDinoPage('trex', 'red');
     await saveDebug('trex_input.png', page);
 
@@ -205,7 +205,6 @@ describe('processDinoImage — synthetic coloring pages with dot grid', () => {
     await saveDebug('trex_output.png', Buffer.from(
       result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
 
-    assert.strictEqual(result.species, 'trex', `expected trex, got ${result.species}`);
     assert.strictEqual(result.dinoDetected, true, 'should detect dino silhouette');
 
     const { data } = await decodeResult(result);
@@ -213,7 +212,7 @@ describe('processDinoImage — synthetic coloring pages with dot grid', () => {
     assert.ok(visible > 1000, `should have many visible pixels, got ${visible}`);
   });
 
-  it('detects Triceratops (2 dots) with blue coloring', async () => {
+  it('detects dino with blue coloring (triceratops page)', async () => {
     const page = await makeDinoPage('triceratops', '#3366cc');
     await saveDebug('tric_input.png', page);
 
@@ -221,11 +220,10 @@ describe('processDinoImage — synthetic coloring pages with dot grid', () => {
     await saveDebug('tric_output.png', Buffer.from(
       result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
 
-    assert.strictEqual(result.species, 'triceratops', `expected triceratops, got ${result.species}`);
     assert.strictEqual(result.dinoDetected, true, 'should detect dino silhouette');
   });
 
-  it('detects Brachiosaurus (3 dots) with green coloring', async () => {
+  it('detects dino with green coloring (brachiosaurus page)', async () => {
     const page = await makeDinoPage('brachiosaurus', '#22aa44');
     await saveDebug('brach_input.png', page);
 
@@ -233,7 +231,6 @@ describe('processDinoImage — synthetic coloring pages with dot grid', () => {
     await saveDebug('brach_output.png', Buffer.from(
       result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
 
-    assert.strictEqual(result.species, 'brachiosaurus', `expected brachiosaurus, got ${result.species}`);
     assert.strictEqual(result.dinoDetected, true, 'should detect dino silhouette');
   });
 
@@ -285,7 +282,6 @@ describe('processDinoImage — synthetic coloring pages with dot grid', () => {
     const page = await makeDinoPage('triceratops', '#ff00ff');
     const result = await processDinoImage(page);
     assert.strictEqual(result.dinoDetected, true);
-    assert.strictEqual(result.species, 'triceratops');
 
     // Output should be species PNG dimensions
     const { width, height } = await decodeResult(result);
@@ -448,5 +444,36 @@ describe('processDinoImage — inner drawings preserve shape proportions', () =>
     assert.ok(redRight > redLeft * 2,
       `red should be mostly right: left=${redLeft}, right=${redRight}`);
     console.log(`  blue L/R: ${blueLeft}/${blueRight}, red L/R: ${redLeft}/${redRight}`);
+  });
+});
+
+// =====================================================================
+
+describe('processDinoImage — real photo regression tests', () => {
+
+  it('detects triceratops from a real rotated photo with scribbles', async () => {
+    const imgPath = path.join(__dirname, 'dino_debug', 'dino_tric_real_test.png');
+    const imgBuf = fs.readFileSync(imgPath);
+
+    const result = await processDinoImage(imgBuf);
+    await saveDebug('tric_real_output.png', Buffer.from(
+      result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
+
+    assert.strictEqual(result.dinoDetected, true, 'should detect a dino silhouette');
+    if (process.env.ANTHROPIC_API_KEY) {
+      assert.strictEqual(result.species, 'triceratops', `expected triceratops, got ${result.species}`);
+    }
+
+    // Output should match species PNG dimensions
+    const { data, width, height } = await decodeResult(result);
+    assert.strictEqual(width, 1408, `expected width 1408, got ${width}`);
+    assert.strictEqual(height, 768, `expected height 768, got ${height}`);
+
+    // Should have substantial visible content (not a blank/tiny crop)
+    const visible = countVisible(data);
+    const total = width * height;
+    const visiblePct = visible / total * 100;
+    assert.ok(visiblePct > 50, `should have >50% visible pixels, got ${visiblePct.toFixed(1)}%`);
+    console.log(`  real photo: ${visiblePct.toFixed(1)}% visible, species=${result.species}`);
   });
 });

@@ -2,3 +2,4 @@ node_modules/
 drawings/
 .DS_Store
 config.json
+.env

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const sharp = require('sharp');
@@ -159,50 +160,10 @@ async function traceAllDinos() {
 // --- Hero Dino Generation ---
 
 async function generateHeroDino() {
-  // Generate a green dino skin texture sized to match trex.png (1408x768).
-  // This full-rectangle texture gets UV-mapped onto the traced trex outline.
-  // Eye position is tuned to land on the T-Rex's head (~12%, 18% from top-left).
-  const tw = 704, th = 384; // half-res for performance
-  const eyeX = Math.round(tw * 0.13), eyeY = Math.round(th * 0.12);
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${tw}" height="${th}" viewBox="0 0 ${tw} ${th}">
-    <defs>
-      <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#4a6e18"/>
-        <stop offset="35%" stop-color="#6B8E23"/>
-        <stop offset="65%" stop-color="#8BAA38"/>
-        <stop offset="100%" stop-color="#a8c060"/>
-      </linearGradient>
-    </defs>
-    <!-- Base skin gradient (dark back, light belly) -->
-    <rect width="${tw}" height="${th}" fill="url(#bodyGrad)"/>
-    <!-- Scale pattern -->
-    ${Array.from({length: Math.ceil(th / 14)}, (_, row) =>
-      Array.from({length: Math.ceil(tw / 16)}, (_, col) => {
-        const ox = (row % 2) * 8;
-        const x = col * 16 + ox;
-        const y = row * 14;
-        return `<ellipse cx="${x}" cy="${y}" rx="6" ry="5" fill="none" stroke="rgba(60,90,15,0.3)" stroke-width="0.8"/>`;
-      }).join('')
-    ).join('')}
-    <!-- Darker dorsal stripe along the top -->
-    <rect x="0" y="0" width="${tw}" height="${Math.round(th * 0.15)}" fill="rgba(30,50,8,0.25)"/>
-    <!-- Lighter belly highlight -->
-    <rect x="0" y="${Math.round(th * 0.7)}" width="${tw}" height="${Math.round(th * 0.3)}" fill="rgba(200,220,120,0.15)"/>
-    <!-- Eye: white sclera -->
-    <circle cx="${eyeX}" cy="${eyeY}" r="14" fill="white" stroke="#333" stroke-width="1.5"/>
-    <!-- Eye: iris -->
-    <circle cx="${eyeX + 2}" cy="${eyeY}" r="8" fill="#8B6914"/>
-    <!-- Eye: pupil -->
-    <circle cx="${eyeX + 3}" cy="${eyeY - 1}" r="5" fill="#1a1a1a"/>
-    <!-- Eye: highlight -->
-    <circle cx="${eyeX + 5}" cy="${eyeY - 3}" r="2.5" fill="white" opacity="0.9"/>
-    <!-- Nostril (near snout, left of eye) -->
-    <ellipse cx="${eyeX - 30}" cy="${eyeY + 10}" rx="3" ry="2" fill="#3a5a10"/>
-  </svg>`;
-
-  const pngBuffer = await sharp(Buffer.from(svg))
-    .resize(tw, th)
+  // Use the actual ari_trex photo as the hero dino texture
+  const photoPath = path.join(__dirname, 'public', 'ari_trex.jpg');
+  const pngBuffer = await sharp(photoPath)
+    .resize(704, 384, { fit: 'cover' })
     .png()
     .toBuffer();
 
@@ -220,6 +181,53 @@ async function generateHeroDino() {
     isHero: true,
     createdAt: Date.now()
   };
+}
+
+// --- Seed Initial Dinos (runs once at startup) ---
+
+async function seedInitialDinos() {
+  const seeds = [
+    { file: 'ari_tric.jpg', name: "Ari's Pat", species: 'triceratops' },
+    { file: 'lily_brach.jpg', name: 'Sese', species: 'brachiosaurus' },
+  ];
+
+  for (const seed of seeds) {
+    const photoPath = path.join(__dirname, 'public', seed.file);
+    if (!fs.existsSync(photoPath)) {
+      console.warn(`Seed image not found: ${seed.file}, skipping`);
+      continue;
+    }
+
+    const photoBuffer = fs.readFileSync(photoPath);
+    const result = await processDinoImage(photoBuffer);
+
+    const dino = {
+      id: 'd' + String(nextDinoId++),
+      name: seed.name,
+      imageData: result.imageData,
+      species: result.species || seed.species,
+      depth: 0.1 + Math.random() * 0.8,
+      speed: 40 + Math.random() * 60,
+      amplitude: 15 + Math.random() * 35,
+      phase: Math.random() * Math.PI * 2,
+      direction: Math.random() < 0.5 ? -1 : 1,
+      createdAt: Date.now()
+    };
+
+    dinos.push(dino);
+
+    // Save to drawings dir
+    try {
+      const safeName = seed.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filePath = path.join(DRAWINGS_DIR, `dino_${dino.id}_${safeName}.png`);
+      const pngBuffer = Buffer.from(result.imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      fs.writeFileSync(filePath, pngBuffer);
+    } catch (e) {
+      console.error(`Failed to save seed dino ${seed.name}:`, e);
+    }
+
+    console.log(`Seeded dino: ${seed.name} (${result.species})`);
+  }
 }
 
 // --- Rate Limiting ---
@@ -670,7 +678,8 @@ app.use((err, req, res, next) => {
 
 // --- Start ---
 
-Promise.all([generateHeroTurtle(), generateHeroDino(), traceAllDinos()]).then(() => {
+Promise.all([generateHeroTurtle(), generateHeroDino(), traceAllDinos()]).then(async () => {
+  await seedInitialDinos();
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Event code: ${EVENT_CODE}`);
