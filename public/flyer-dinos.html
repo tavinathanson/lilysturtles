@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dinosaurs - Flyer</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .controls {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .controls label { font-weight: 700; font-size: 14px; color: #333; }
+  .controls input {
+    font-family: monospace;
+    font-size: 14px;
+    padding: 6px 10px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    width: 360px;
+  }
+  .controls button {
+    background: #8B6914;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .controls button:hover { background: #6d5210; }
+
+  .flyer {
+    width: 8.5in;
+    height: 11in;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    padding: 0.75in;
+  }
+
+  .title {
+    font-size: 72px;
+    font-weight: 900;
+    color: #5a3e1b;
+    text-align: center;
+  }
+
+  .dino-emoji {
+    font-size: 140px;
+    line-height: 1;
+  }
+
+  .qr-wrap {
+    border: 6px solid #8B6914;
+    border-radius: 20px;
+    padding: 24px;
+    background: white;
+  }
+  .qr-wrap img { display: block; width: 400px; height: 400px; }
+
+  .scan-text {
+    font-size: 28px;
+    font-weight: 800;
+    color: #5a3e1b;
+    text-align: center;
+  }
+
+  .steps {
+    font-size: 20px;
+    font-weight: 700;
+    color: #666;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  @media print {
+    @page { size: letter; margin: 0; }
+    body { background: white; padding: 0; }
+    .controls { display: none !important; }
+    .flyer {
+      box-shadow: none;
+      border-radius: 0;
+      width: 100%;
+      height: 100vh;
+      min-height: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <label>URL:</label>
+  <input type="text" id="urlInput" value="https://lilysturtles-production.up.railway.app/upload-dinos">
+  <button onclick="updateQR()">Update QR</button>
+</div>
+
+<div class="flyer">
+  <div class="title">Dinosaurs</div>
+
+  <div class="dino-emoji">🦖</div>
+
+  <div class="qr-wrap">
+    <img id="qr" alt="QR Code">
+  </div>
+
+  <div class="scan-text">Scan to add your dinosaur!</div>
+</div>
+
+<script>
+function updateQR() {
+  const url = document.getElementById('urlInput').value.trim();
+  const qrImg = document.getElementById('qr');
+  qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' + encodeURIComponent(url);
+}
+updateQR();
+</script>
+</body>
+</html>
