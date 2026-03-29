@@ -13,11 +13,14 @@ if (!fs.existsSync(DRAWINGS_DIR)) fs.mkdirSync(DRAWINGS_DIR);
 
 const app = express();
 
-// Load config
+// Load config from environment variables or config.json fallback
+let config = {};
 const CONFIG_PATH = path.join(__dirname, 'config.json');
-const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-const EVENT_CODE = config.eventCode || '1234';
-const PORT = config.port || 3000;
+if (fs.existsSync(CONFIG_PATH)) {
+  config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+}
+const EVENT_CODE = process.env.EVENT_CODE || config.eventCode || '1234';
+const PORT = process.env.PORT || config.port || 3000;
 const MAX_TURTLES = 30;
 const MAX_DINOS = 30;
 const rateLimitMap = new Map();
