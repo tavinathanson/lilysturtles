@@ -162,17 +162,14 @@ async function traceAllDinos() {
 async function generateHeroDino() {
   // Use the actual ari_trex photo as the hero dino texture
   const photoPath = path.join(__dirname, 'public', 'ari_trex.jpg');
-  const pngBuffer = await sharp(photoPath)
-    .resize(704, 384, { fit: 'cover' })
-    .png()
-    .toBuffer();
+  const photoBuffer = fs.readFileSync(photoPath);
+  const result = await processDinoImage(photoBuffer);
 
-  const base64 = pngBuffer.toString('base64');
   heroDino = {
     id: 'hero-dino',
     name: (config.dinos && config.dinos.heroName) || "Ari's Dinosaur",
-    imageData: `data:image/png;base64,${base64}`,
-    species: 'trex',
+    imageData: result.imageData,
+    species: result.species || 'trex',
     depth: 0.5,
     speed: 30,
     amplitude: 40,
