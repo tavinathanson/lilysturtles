@@ -679,7 +679,7 @@ app.use((err, req, res, next) => {
 
 Promise.all([generateHeroTurtle(), generateHeroDino(), traceAllDinos()]).then(async () => {
   await seedInitialDinos();
-  app.listen(PORT, () => {
+  app.listen(PORT, process.env.HOST || '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Event code: ${EVENT_CODE}`);
   });
