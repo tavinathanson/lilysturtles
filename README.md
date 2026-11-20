@@ -3,6 +3,7 @@
 <p>
   <img src="docs/screenshot-1.jpeg" width="49%" alt="Lily's Turtles screenshot 1">
   <img src="docs/screenshot-2.jpeg" width="49%" alt="Lily's Turtles screenshot 2">
+  <img src="docs/screenshot-3.png" width="49%" alt="Lily's Turtles screenshot 3">
 </p>
 
 An interactive 3D web aquarium where guests upload drawings that become swimming turtles. Built for birthday parties, classrooms, or any event where you want a shared creative experience on a big screen.
